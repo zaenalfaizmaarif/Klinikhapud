@@ -1,0 +1,6 @@
+{
+  "name": "Klinik X - Pendaftaran Online & Antrean Sesi",
+  "description": "Sistem pendaftaran online berobat, pembagian sesi waktu bebas bentrok, tiket antrean digital, monitor panggilan real-time, dan dashboard admin Klinik.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

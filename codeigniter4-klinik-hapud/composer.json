@@ -1,0 +1,16 @@
+{
+    "name": "klinik-hapud/codeigniter4",
+    "type": "project",
+    "description": "Sistem Informasi Pendaftaran Online, Antrean Sesi Bebas Bentrok & Rekam Medis Klinik H.APUD",
+    "homepage": "https://klinikhapud.id",
+    "license": "MIT",
+    "require": {
+        "php": "^7.4 || ^8.0 || ^8.1 || ^8.2 || ^8.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app",
+            "Config\\": "app/Config"
+        }
+    }
+}

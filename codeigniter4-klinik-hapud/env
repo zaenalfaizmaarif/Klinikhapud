@@ -1,0 +1,18 @@
+#--------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION - KLINIK H.APUD
+#--------------------------------------------------------------------
+CI_ENVIRONMENT = development
+
+app.baseURL = 'http://localhost:8080/'
+app.forceGlobalSecureRequests = false
+
+#--------------------------------------------------------------------
+# DATABASE MYSQL (XAMPP / LARAGON)
+#--------------------------------------------------------------------
+database.default.hostname = localhost
+database.default.database = klinik_hapud
+database.default.username = root
+database.default.password = 
+database.default.DBDriver = MySQLi
+database.default.DBPrefix = 
+database.default.port = 3306
