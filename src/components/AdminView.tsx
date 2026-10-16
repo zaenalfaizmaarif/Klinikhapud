@@ -174,15 +174,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <span className="hidden sm:inline">Export MySQL</span>
           </button>
 
-          {/* Download Project Source Code ZIP (CodeIgniter 4) */}
+          {/* Download Project Source Code ZIP */}
           <a
-            href="/Klinik_H.APUD_CodeIgniter4.zip"
-            download="Klinik_H.APUD_CodeIgniter4.zip"
+            href="/Klinik_H.APUD.zip"
+            download="Klinik_H.APUD.zip"
             className="px-3.5 py-3 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Download Seluruh Folder Proyek CodeIgniter 4 (PHP & MySQL) untuk VS Code"
+            title="Download Seluruh Folder Proyek untuk Dibuka di VS Code"
           >
             <FolderArchive className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">Download CI4 (PHP & MySQL)</span>
+            <span className="hidden sm:inline">Download Proyek (VS Code)</span>
           </a>
 
           {/* Change Admin Password */}

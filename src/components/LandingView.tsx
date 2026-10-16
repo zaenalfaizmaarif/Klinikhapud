@@ -10,8 +10,6 @@ import {
   Activity,
   PhoneCall,
   MapPin,
-  FolderArchive,
-  Download,
 } from 'lucide-react';
 import { Patient, ClinicStatus, PatientUser } from '../types';
 
@@ -299,31 +297,6 @@ export const LandingView: React.FC<LandingViewProps> = ({
             <span>Cari</span>
           </button>
         </form>
-      </div>
-
-      {/* Download Source Code & VS Code Folder Card (CodeIgniter 4) */}
-      <div className="max-w-4xl mx-auto bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 border border-indigo-900/40">
-        <div className="space-y-1.5 flex-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-            <Download className="w-3.5 h-3.5" />
-            <span>Format CodeIgniter 4 (PHP & MySQL)</span>
-          </div>
-          <h3 className="text-lg sm:text-xl font-black text-white">
-            Download Proyek Klinik H.APUD - CodeIgniter 4 (ZIP)
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-            Tersusun rapi persis struktur framework CI4: folder <code className="text-amber-300 font-mono">app/</code>, <code className="text-amber-300 font-mono">public/</code>, <code className="text-amber-300 font-mono">system/</code>, <code className="text-amber-300 font-mono">writable/</code>, file <code className="text-amber-300 font-mono">spark</code>, <code className="text-amber-300 font-mono">env</code>, dan skema database MySQL (<code className="text-emerald-300 font-mono">database/schema.sql</code>) siap pakai untuk VS Code & XAMPP.
-          </p>
-        </div>
-
-        <a
-          href="/Klinik_H.APUD_CodeIgniter4.zip"
-          download="Klinik_H.APUD_CodeIgniter4.zip"
-          className="w-full sm:w-auto px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer shrink-0"
-        >
-          <FolderArchive className="w-4 h-4 text-white" />
-          <span>Download CI4 (ZIP)</span>
-        </a>
       </div>
 
       {/* Clinic Operating Sessions & Location Info Strip */}
