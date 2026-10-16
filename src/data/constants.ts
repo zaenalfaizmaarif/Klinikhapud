@@ -1,4 +1,102 @@
-import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount } from '../types';
+import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount, ExaminationRoom } from '../types';
+
+export const DEFAULT_CLINIC_ROOMS: ExaminationRoom[] = [
+  {
+    id: 'room-1',
+    name: 'Ruang Periksa 1 (Poli Umum)',
+    polyName: 'Poli Umum & Konsultasi',
+    doctorName: 'dr. H. Apud S.',
+    description: 'Lantai 1 - Ruang Utama Dekat Ruang Tunggu',
+    status: 'Tersedia',
+  },
+  {
+    id: 'room-2',
+    name: 'Ruang Periksa 2 (Poli KIA / Ibu & Anak)',
+    polyName: 'Pemeriksaan Ibu, Anak & KB',
+    doctorName: 'Bidan Hj. Dewi R., S.Tr.Keb',
+    description: 'Lantai 1 - Sayap Kanan',
+    status: 'Tersedia',
+  },
+  {
+    id: 'room-3',
+    name: 'Ruang Tindakan Bedah & Luka',
+    polyName: 'Tindakan Medis, Jahit Luka & Operasi Kecil',
+    doctorName: 'dr. H. Apud S. & Tim Medis',
+    description: 'Lantai 1 - Ruang Steril Tindakan',
+    status: 'Tersedia',
+  },
+  {
+    id: 'room-khitan',
+    name: 'Ruang Khitan / Sunat Modern',
+    polyName: 'Poli Khitan / Sunat Anak & Dewasa',
+    doctorName: 'dr. H. Apud S. & Tim Khitan',
+    description: 'Lantai 1 - Ruang Khusus Khitan Nyaman, Ramah Anak & Steril',
+    status: 'Tersedia',
+  },
+  {
+    id: 'room-4',
+    name: 'Ruang Laboratorium & Cek Darah',
+    polyName: 'Laboratorium & Diagnostik Cepat',
+    doctorName: 'Analis Medis Klinik',
+    description: 'Lantai 1 - Sebelah Loket Obat',
+    status: 'Tersedia',
+  },
+  {
+    id: 'room-hc',
+    name: 'Kunjungan Luar (Home Care)',
+    polyName: 'Layanan Medis ke Rumah Pasien',
+    doctorName: 'Tim Perawat Home Care',
+    description: 'Alamat / Tempat Tinggal Pasien',
+    status: 'Tersedia',
+  },
+];
+
+export function getDefaultRoomForPatient(service: ServiceType, complaint: string = ''): string {
+  const lowerService = service.toLowerCase();
+  const lowerComplaint = complaint.toLowerCase();
+
+  if (lowerService.includes('home care')) {
+    return 'Kunjungan Luar (Home Care)';
+  }
+  if (
+    lowerService.includes('khitan') ||
+    lowerService.includes('sunat') ||
+    lowerComplaint.includes('khitan') ||
+    lowerComplaint.includes('sunat')
+  ) {
+    return 'Ruang Khitan / Sunat Modern';
+  }
+  if (
+    lowerService.includes('luka') ||
+    lowerComplaint.includes('jahit') ||
+    lowerComplaint.includes('luka') ||
+    lowerComplaint.includes('robek') ||
+    lowerComplaint.includes('darah mengalir')
+  ) {
+    return 'Ruang Tindakan Bedah & Luka';
+  }
+  if (
+    lowerService.includes('darah') ||
+    lowerService.includes('laboratorium') ||
+    lowerComplaint.includes('kolesterol') ||
+    lowerComplaint.includes('gula darah') ||
+    lowerComplaint.includes('asam urat')
+  ) {
+    return 'Ruang Laboratorium & Cek Darah';
+  }
+  if (
+    lowerComplaint.includes('hamil') ||
+    lowerComplaint.includes('kandungan') ||
+    lowerComplaint.includes('anak') ||
+    lowerComplaint.includes('bayi') ||
+    lowerComplaint.includes('balita') ||
+    lowerComplaint.includes('kb') ||
+    lowerComplaint.includes('imunisasi')
+  ) {
+    return 'Ruang Periksa 2 (Poli KIA / Ibu & Anak)';
+  }
+  return 'Ruang Periksa 1 (Poli Umum)';
+}
 
 export const DEFAULT_ADMIN_CREDENTIALS: AdminCredentials = {
   username: 'admin',
@@ -140,6 +238,8 @@ export const INITIAL_PATIENTS: Patient[] = [
     timeSlot: '08:00',
     complaint: 'Demam tinggi 2 hari, meriang, dan pusing berdenyut.',
     status: 'Selesai',
+    assignedRoom: 'Ruang Periksa 1 (Poli Umum)',
+    doctorName: 'dr. H. Apud S.',
     vitalSigns: { bp: '115/75', temp: '37.8', pulse: '82', weight: '58' },
     diagnosis: 'Febris Akut / Suspek Infeksi Saluran Napas Atas',
     prescription: 'Paracetamol 500mg 3x1 tablet, Vitamin C 500mg 1x1 tablet, Amoxicillin 500mg 3x1 (dihabiskan).',
@@ -161,6 +261,8 @@ export const INITIAL_PATIENTS: Patient[] = [
     timeSlot: '08:30',
     complaint: 'Luka robek di telapak kaki terkena pecahan kaca saat bertani.',
     status: 'Dipanggil',
+    assignedRoom: 'Ruang Tindakan Bedah & Luka',
+    doctorName: 'dr. H. Apud S. & Tim Medis',
     vitalSigns: { bp: '130/85', temp: '36.6', pulse: '78', weight: '65' },
     diagnosis: 'Vulnus Laceratum Regio Pedis Sinistra',
     prescription: 'Hecting 3 jahitan, Injeksi ATS / Antitetanus, Cefadroxil 500mg 2x1, Asam Mefenamat 500mg 3x1.',
@@ -182,6 +284,8 @@ export const INITIAL_PATIENTS: Patient[] = [
     timeSlot: '09:00',
     complaint: 'Kontrol rutin tensi darah tinggi dan cek gula darah puasa.',
     status: 'Menunggu',
+    assignedRoom: 'Ruang Laboratorium & Cek Darah',
+    doctorName: 'Analis Medis Klinik',
     createdAt: new Date(Date.now() - 3600000).toISOString(),
   },
   {
@@ -200,6 +304,28 @@ export const INITIAL_PATIENTS: Patient[] = [
     timeSlot: '13:00',
     complaint: 'Perut kembung, mual muntah setelah makan pedas.',
     status: 'Menunggu',
+    assignedRoom: 'Ruang Periksa 1 (Poli Umum)',
+    doctorName: 'dr. H. Apud S.',
     createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'pt-5',
+    code: `K-${dm}-001`,
+    name: 'M. Rizky Pratama (Anak)',
+    patientType: 'Baru',
+    noRM: '-',
+    service: 'Khitan / Sunat Modern',
+    dob: '2016-07-10',
+    gender: 'Laki-laki',
+    phone: '081233445566',
+    address: 'Dusun Mekarsari RT 04/02',
+    visitDate: getTodayString(),
+    sessionName: 'Sesi 1',
+    timeSlot: '10:00',
+    complaint: 'Tindakan khitan sunat modern anak metode cincin & lem tanpa perban.',
+    status: 'Menunggu',
+    assignedRoom: 'Ruang Khitan / Sunat Modern',
+    doctorName: 'dr. H. Apud S. & Tim Khitan',
+    createdAt: new Date(Date.now() - 1800000).toISOString(),
   },
 ];

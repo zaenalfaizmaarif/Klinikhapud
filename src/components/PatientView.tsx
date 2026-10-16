@@ -27,19 +27,23 @@ import {
   KeyRound,
   LogOut,
   Share2,
+  Building2,
 } from 'lucide-react';
-import { Patient, PatientTab, ServiceType, SessionName, ClinicStatus, PatientUser } from '../types';
+import { Patient, PatientTab, ServiceType, SessionName, ClinicStatus, PatientUser, ExaminationRoom } from '../types';
 import {
   SESSION_TIME_SLOTS,
   MAX_PATIENTS_PER_SLOT,
   SERVICE_PREFIXES,
   SERVICES_CATALOG,
+  getDefaultRoomForPatient,
+  DEFAULT_CLINIC_ROOMS,
 } from '../data/constants';
 import { formatDateIndo, calculateAge, findPatientByQueueOrPhone, generateWhatsAppLink } from '../utils/helpers';
 
 interface PatientViewProps {
   activeTab: PatientTab;
   patients: Patient[];
+  clinicRooms?: ExaminationRoom[];
   onRegisterPatient: (patientData: Omit<Patient, 'id' | 'code' | 'status' | 'createdAt'>) => void;
   onOpenCheckTicket: () => void;
   clinicStatus: ClinicStatus;
@@ -55,6 +59,7 @@ interface PatientViewProps {
 export const PatientView: React.FC<PatientViewProps> = ({
   activeTab,
   patients,
+  clinicRooms = DEFAULT_CLINIC_ROOMS,
   onRegisterPatient,
   onOpenCheckTicket,
   clinicStatus,
@@ -215,6 +220,7 @@ export const PatientView: React.FC<PatientViewProps> = ({
       sessionName,
       timeSlot: selectedTimeSlot,
       complaint: complaint.trim(),
+      assignedRoom: getDefaultRoomForPatient(service, complaint),
     });
 
     // Reset form fields and navigate to account dashboard
@@ -348,9 +354,14 @@ export const PatientView: React.FC<PatientViewProps> = ({
                   </div>
 
                   {activeTicket.status === 'Dipanggil' && (
-                    <div className="p-3 bg-white/25 rounded-2xl border border-white/40 flex items-center gap-2 text-white font-bold text-xs sm:text-sm">
-                      <span className="text-xl">🔔</span>
-                      <span>NOMOR ANDA SEDANG DIPANGGIL! Harap segera menuju ke ruang periksa klinik.</span>
+                    <div className="p-3.5 bg-white text-slate-900 rounded-2xl border-2 border-amber-300 flex items-center gap-3 font-bold text-xs sm:text-sm shadow-lg">
+                      <span className="text-2xl animate-bounce">🔔</span>
+                      <div>
+                        <p className="font-black text-amber-900">NOMOR ANDA SEDANG DIPANGGIL!</p>
+                        <p className="text-xs text-slate-700">
+                          Silakan langsung menuju: <strong className="text-teal-900 font-black">{activeTicket.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}</strong>
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -361,7 +372,56 @@ export const PatientView: React.FC<PatientViewProps> = ({
                     </h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs text-white/90">
+                  {/* Highlight Ruangan Tujuan Pasien */}
+                  {(() => {
+                    const roomInfo = clinicRooms.find(
+                      (r) => r.name.toLowerCase() === (activeTicket.assignedRoom || '').toLowerCase()
+                    );
+                    return (
+                      <div className="bg-amber-400/20 border border-amber-300/40 p-3.5 rounded-2xl backdrop-blur-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-sm shrink-0">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-amber-200 block text-[10px] uppercase font-black tracking-wider">
+                                Ruangan Yang Bakal Dimasuki
+                              </span>
+                              {roomInfo?.status && (
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                  roomInfo.status === 'Tersedia'
+                                    ? 'bg-emerald-500/80 text-white'
+                                    : roomInfo.status === 'Sedang Digunakan'
+                                    ? 'bg-amber-500 text-slate-950 font-black'
+                                    : 'bg-rose-500 text-white'
+                                }`}>
+                                  {roomInfo.status}
+                                </span>
+                              )}
+                            </div>
+                            <span className="font-black text-white text-base sm:text-lg block">
+                              {activeTicket.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}
+                            </span>
+                            <span className="text-xs text-amber-100 font-medium block">
+                              {roomInfo?.polyName ? `Pelayanan: ${roomInfo.polyName}` : 'Pemeriksaan Dokter & Pelayanan Medis'}
+                              {roomInfo?.description ? ` • ${roomInfo.description}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                        {(activeTicket.doctorName || roomInfo?.doctorName) && (
+                          <div className="text-left sm:text-right bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 self-start sm:self-auto">
+                            <span className="text-[10px] text-white/70 block uppercase font-bold">Dokter / Petugas</span>
+                            <span className="text-xs text-white font-extrabold">
+                              👨‍⚕️ {activeTicket.doctorName || roomInfo?.doctorName}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs text-white/90">
                     <div className="bg-white/10 p-3 rounded-xl backdrop-blur-xs">
                       <span className="text-white/60 block text-[10px]">Jadwal Kunjungan</span>
                       <span className="font-bold">{formatDateIndo(activeTicket.visitDate)}</span>
@@ -497,6 +557,17 @@ export const PatientView: React.FC<PatientViewProps> = ({
                       <p className="text-xs text-slate-500">
                         Tanggal: <strong>{formatDateIndo(t.visitDate)}</strong> • {t.sessionName} ({t.timeSlot} WIB)
                       </p>
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <span className="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-teal-600" />
+                          <span>Ruang: {t.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}</span>
+                        </span>
+                        {t.doctorName && (
+                          <span className="text-[11px] text-slate-600 font-semibold">
+                            👨‍⚕️ {t.doctorName}
+                          </span>
+                        )}
+                      </div>
                       {t.diagnosis && (
                         <p className="text-[11px] text-teal-900 bg-teal-50/80 px-2 py-1 rounded-md mt-1">
                           <strong>Diagnosis:</strong> {t.diagnosis}
@@ -1067,6 +1138,26 @@ export const PatientView: React.FC<PatientViewProps> = ({
                   placeholder="Jelaskan secara singkat gejala yang dirasakan (contoh: batuk berdahak 3 hari, demam, nyeri tenggorokan)..."
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none text-xs sm:text-sm bg-white"
                 />
+
+                {/* Rekomendasi Ruangan Otomatis Berdasarkan Poli & Keluhan */}
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+                      <Building2 className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="truncate">
+                      <span className="text-[10px] uppercase font-bold text-teal-800 block">
+                        Rekomendasi Ruangan Pemeriksaan
+                      </span>
+                      <span className="font-extrabold text-slate-900 truncate block">
+                        {getDefaultRoomForPatient(service, complaint)}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-teal-800 bg-teal-200/60 font-bold px-2 py-0.5 rounded-full shrink-0">
+                    Sesuai Poli & Keluhan
+                  </span>
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -1279,8 +1370,8 @@ export const PatientView: React.FC<PatientViewProps> = ({
                 {servingPatient ? servingPatient.name : 'Tidak Ada Pasien'}
               </p>
               {servingPatient && (
-                <div className="mt-2 text-xs text-teal-700 font-semibold">
-                  {servingPatient.sessionName} • {servingPatient.timeSlot} WIB
+                <div className="mt-2 text-xs text-teal-800 font-bold bg-teal-100/80 py-1.5 px-3 rounded-xl inline-block shadow-2xs">
+                  🏢 Silakan Masuk: {servingPatient.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}
                 </div>
               )}
             </div>
@@ -1297,8 +1388,8 @@ export const PatientView: React.FC<PatientViewProps> = ({
                 {nextPatient ? nextPatient.name : 'Belum Ada'}
               </p>
               {nextPatient && (
-                <div className="mt-2 text-xs text-amber-800 font-semibold">
-                  {nextPatient.sessionName} • {nextPatient.timeSlot} WIB
+                <div className="mt-2 text-xs text-amber-900 font-semibold bg-amber-100/70 py-1 px-2.5 rounded-lg inline-block">
+                  {nextPatient.sessionName} • {nextPatient.timeSlot} WIB • 🏢 {nextPatient.assignedRoom || 'Ruang Periksa 1'}
                 </div>
               )}
             </div>
@@ -1315,6 +1406,96 @@ export const PatientView: React.FC<PatientViewProps> = ({
                 {waitingPatients.length} Menunggu •{' '}
                 {todayPatients.filter((p) => p.status === 'Selesai').length} Selesai
               </p>
+            </div>
+          </div>
+
+          {/* Visual Board: Status & Ruangan Pemeriksaan Hari Ini */}
+          <div className="bg-slate-50/70 border border-slate-200 rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200/80 pb-3">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-teal-600" />
+                  <span>Daftar Ruangan Pemeriksaan & Poli Klinik ({clinicRooms.length} Ruangan)</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Lihat ruangan yang akan Anda masuki, dokter jaga, dan status ruangan secara langsung.
+                </p>
+              </div>
+              <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                Pembaruan Real-Time
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {clinicRooms.map((room) => {
+                const isMyRoom = activeTicket?.assignedRoom && activeTicket.assignedRoom.toLowerCase() === room.name.toLowerCase();
+                const roomPatients = todayPatients.filter(
+                  (p) => (p.assignedRoom || '').toLowerCase() === room.name.toLowerCase()
+                );
+                const currentExamined = roomPatients.find((p) => p.status === 'Dipanggil');
+                const waitingInRoomCount = roomPatients.filter((p) => p.status === 'Menunggu').length;
+
+                return (
+                  <div
+                    key={room.id}
+                    className={`p-4 rounded-2xl border transition relative overflow-hidden flex flex-col justify-between space-y-3 ${
+                      isMyRoom
+                        ? 'bg-teal-50/90 border-teal-500 ring-2 ring-teal-400 shadow-md'
+                        : 'bg-white border-slate-200 shadow-2xs hover:border-slate-300'
+                    }`}
+                  >
+                    {isMyRoom && (
+                      <div className="bg-teal-600 text-white text-[10px] font-black uppercase tracking-wider py-1 px-3 -mx-4 -mt-4 mb-2 flex items-center justify-between shadow-xs">
+                        <span>🎯 Ruangan Bakal Anda Masuki</span>
+                        <span>Nomor Anda: {activeTicket.code}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-black text-slate-900 text-sm leading-snug">{room.name}</h4>
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
+                            (room.status || 'Tersedia') === 'Tersedia'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : (room.status || 'Tersedia') === 'Sedang Digunakan'
+                              ? 'bg-amber-100 text-amber-900 font-bold'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {room.status || 'Tersedia'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-teal-800 font-bold">{room.polyName}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">{room.description || 'Lantai 1 Klinik H.APUD'}</p>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-2.5 space-y-1.5 text-xs">
+                      <div className="flex items-center gap-1.5 text-slate-700">
+                        <span className="text-[11px] text-slate-400">Dokter:</span>
+                        <strong className="text-slate-800 text-[11px] truncate">
+                          👨‍⚕️ {room.doctorName || 'Dokter Jaga'}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span className="text-slate-500">
+                          {waitingInRoomCount} antrean menunggu
+                        </span>
+                        {currentExamined ? (
+                          <span className="font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md text-[10px] animate-pulse">
+                            Diperiksa: {currentExamined.code}
+                          </span>
+                        ) : (
+                          <span className="text-emerald-700 font-bold text-[10px]">
+                            Siap Pasien Baru
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1347,6 +1528,7 @@ export const PatientView: React.FC<PatientViewProps> = ({
                   <th className="p-3.5">No. Antrean</th>
                   <th className="p-3.5">Nama Pasien</th>
                   <th className="p-3.5">Sesi & Jam</th>
+                  <th className="p-3.5">Ruangan Tujuan</th>
                   <th className="p-3.5">Layanan</th>
                   <th className="p-3.5">Status</th>
                 </tr>
@@ -1392,6 +1574,12 @@ export const PatientView: React.FC<PatientViewProps> = ({
                           {p.sessionName}{' '}
                           <span className="text-xs font-bold text-teal-700">
                             ({p.timeSlot} WIB)
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className="font-bold text-teal-900 bg-teal-50 px-2.5 py-1 rounded-xl border border-teal-200 inline-flex items-center gap-1.5 text-xs">
+                            <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                            <span>{p.assignedRoom || 'Ruang Periksa 1'}</span>
                           </span>
                         </td>
                         <td className="p-3.5 text-slate-600">{p.service}</td>

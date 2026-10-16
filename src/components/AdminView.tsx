@@ -19,16 +19,21 @@ import {
   HeartPulse,
   Power,
   KeyRound,
-  Database,
-  FolderArchive,
+  Building2,
+  Stethoscope,
 } from 'lucide-react';
-import { Patient, PatientStatus, SessionName, ClinicStatus } from '../types';
-import { formatDateIndo, calculateAge, exportToCSV, exportToMySQLScript } from '../utils/helpers';
+import { Patient, PatientStatus, SessionName, ClinicStatus, ExaminationRoom } from '../types';
+import { formatDateIndo, calculateAge, exportToCSV } from '../utils/helpers';
 import { speakCallout, playChime } from '../utils/audio';
+import { DEFAULT_CLINIC_ROOMS, getDefaultRoomForPatient } from '../data/constants';
+import { ManageRoomsModal } from './modals/ManageRoomsModal';
 
 interface AdminViewProps {
   patients: Patient[];
   clinicStatus: ClinicStatus;
+  clinicRooms?: ExaminationRoom[];
+  onAssignRoom?: (patientId: string, roomName: string) => void;
+  onSaveRooms?: (updatedRooms: ExaminationRoom[]) => void;
   onOpenClinicStatusModal: () => void;
   onCallPatient: (patient: Patient) => void;
   onCallNextPatient: () => void;
@@ -37,6 +42,7 @@ interface AdminViewProps {
   onOpenTicket: (patient: Patient) => void;
   onDeletePatient: (patientId: string) => void;
   onOpenWalkInModal: () => void;
+  onOpenCheckTicket?: () => void;
   onOpenPrintReport: () => void;
   onResetDemoData: () => void;
   onLogout: () => void;
@@ -46,6 +52,9 @@ interface AdminViewProps {
 export const AdminView: React.FC<AdminViewProps> = ({
   patients,
   clinicStatus,
+  clinicRooms = DEFAULT_CLINIC_ROOMS,
+  onAssignRoom,
+  onSaveRooms,
   onOpenClinicStatusModal,
   onCallPatient,
   onCallNextPatient,
@@ -54,12 +63,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onOpenTicket,
   onDeletePatient,
   onOpenWalkInModal,
+  onOpenCheckTicket,
   onOpenPrintReport,
   onResetDemoData,
   onLogout,
   onOpenChangeAdminPassword,
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
+
+  // Room modal state
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
 
   // Filters state
   const [filterSession, setFilterSession] = useState<string>('ALL');
@@ -144,6 +157,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <span>Walk-In</span>
           </button>
 
+          {/* Kelola Ruangan & Poli */}
+          <button
+            onClick={() => setIsRoomModalOpen(true)}
+            className="px-3.5 py-3 bg-teal-800 hover:bg-teal-700 text-teal-100 border border-teal-600/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
+            title="Kelola Ruangan Pemeriksaan, Poli, & Dokter Jaga"
+          >
+            <Building2 className="w-4 h-4 text-teal-300" />
+            <span className="hidden sm:inline">Kelola Ruangan & Poli</span>
+            <span className="sm:hidden">Ruangan</span>
+          </button>
+
           {/* Print Report */}
           <button
             onClick={onOpenPrintReport}
@@ -164,26 +188,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <span className="hidden sm:inline">CSV</span>
           </button>
 
-          {/* Export Database MySQL (.sql) */}
-          <button
-            onClick={() => exportToMySQLScript(patients)}
-            className="px-3.5 py-3 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Download File Database MySQL (.sql) untuk VS Code & phpMyAdmin"
-          >
-            <Database className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">Export MySQL</span>
-          </button>
-
-          {/* Download Project Source Code ZIP */}
-          <a
-            href="/Klinik_H.APUD.zip"
-            download="Klinik_H.APUD.zip"
-            className="px-3.5 py-3 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Download Seluruh Folder Proyek untuk Dibuka di VS Code"
-          >
-            <FolderArchive className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">Download Proyek (VS Code)</span>
-          </a>
+          {/* Cek Seluruh Tiket Pasien */}
+          {onOpenCheckTicket && (
+            <button
+              onClick={onOpenCheckTicket}
+              className="px-3.5 py-3 bg-teal-800 hover:bg-teal-700 text-teal-100 border border-teal-600/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
+              title="Buka Seluruh Tiket Pasien Terdaftar"
+            >
+              <Ticket className="w-4 h-4 text-teal-300" />
+              <span className="hidden sm:inline">Cek Tiket Pasien</span>
+              <span className="sm:hidden">Tiket</span>
+            </button>
+          )}
 
           {/* Change Admin Password */}
           {onOpenChangeAdminPassword && (
@@ -333,6 +349,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <th className="p-3.5">Identitas Pasien</th>
                 <th className="p-3.5">Sesi & Jam</th>
                 <th className="p-3.5">Layanan & Keluhan</th>
+                <th className="p-3.5">Ruangan / Poli</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 text-center">Aksi Petugas</th>
               </tr>
@@ -340,7 +357,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-10 text-center text-slate-400 font-medium">
+                  <td colSpan={7} className="p-10 text-center text-slate-400 font-medium">
                     Tidak ada data pendaftaran yang sesuai dengan filter.
                   </td>
                 </tr>
@@ -372,6 +389,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   }
 
                   const hasMedicalNotes = Boolean(p.diagnosis || p.prescription);
+                  const suggestedRoom = getDefaultRoomForPatient(p.service, p.complaint);
+                  const currentRoom = p.assignedRoom || suggestedRoom;
+                  const isCustom = p.assignedRoom && p.assignedRoom !== suggestedRoom;
 
                   return (
                     <tr
@@ -420,6 +440,53 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             Ada Catatan Resep
                           </span>
                         )}
+                      </td>
+
+                      {/* Ruangan / Poli Allocation & Smart Suggestion */}
+                      <td className="p-3.5">
+                        <div className="space-y-1.5 min-w-[190px]">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                            <select
+                              value={currentRoom}
+                              onChange={(e) => {
+                                if (onAssignRoom) {
+                                  onAssignRoom(p.id, e.target.value);
+                                }
+                              }}
+                              className="w-full text-xs font-bold bg-teal-50/80 border border-teal-200 text-teal-900 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                              title="Pilih atau alihkan ruangan periksa pasien"
+                            >
+                              {clinicRooms.map((room) => (
+                                <option key={room.id} value={room.name}>
+                                  {room.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-1 text-[10px]">
+                            {isCustom ? (
+                              <button
+                                type="button"
+                                onClick={() => onAssignRoom && onAssignRoom(p.id, suggestedRoom)}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold px-2 py-0.5 rounded-md transition flex items-center gap-1 cursor-pointer"
+                                title={`Keluhan pasien: "${p.complaint}" -> Klik untuk terapkan saran: ${suggestedRoom}`}
+                              >
+                                <span>💡 Saran: {suggestedRoom.replace(/Ruang Periksa \d+ |Ruang /, '').split('(')[0]}</span>
+                              </button>
+                            ) : (
+                              <span className="text-teal-700 font-bold bg-teal-50/70 border border-teal-200/60 px-2 py-0.5 rounded-md inline-block">
+                                ✓ Sesuai poli & keluhan
+                              </span>
+                            )}
+                            {p.doctorName && (
+                              <span className="text-slate-500 font-medium truncate max-w-[100px]" title={p.doctorName}>
+                                👨‍⚕️ {p.doctorName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -514,6 +581,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Modal Kelola Ruangan & Poli */}
+      <ManageRoomsModal
+        isOpen={isRoomModalOpen}
+        onClose={() => setIsRoomModalOpen(false)}
+        rooms={clinicRooms}
+        onSaveRooms={(updated) => {
+          if (onSaveRooms) onSaveRooms(updated);
+        }}
+        patients={patients}
+      />
     </div>
   );
 };

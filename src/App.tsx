@@ -9,6 +9,7 @@ import {
   PatientUser,
   AdminCredentials,
   PatientAccount,
+  ExaminationRoom,
 } from './types';
 import {
   INITIAL_PATIENTS,
@@ -16,6 +17,8 @@ import {
   MAX_PATIENTS_PER_SLOT,
   DEFAULT_ADMIN_CREDENTIALS,
   INITIAL_PATIENT_ACCOUNTS,
+  DEFAULT_CLINIC_ROOMS,
+  getDefaultRoomForPatient,
 } from './data/constants';
 import { computeAutoClinicStatus } from './utils/schedule';
 import { Header } from './components/Header';
@@ -35,6 +38,16 @@ import { ChangeAdminPasswordModal } from './components/modals/ChangeAdminPasswor
 import { ChangePatientPasswordModal } from './components/modals/ChangePatientPasswordModal';
 import { PrintableReport } from './components/PrintableReport';
 import { speakCallout } from './utils/audio';
+import {
+  testConnection,
+  subscribePatients,
+  syncPatientToFirestore,
+  deletePatientFromFirestore,
+  subscribeRooms,
+  syncRoomsToFirestore,
+  subscribeClinicStatus,
+  syncClinicStatusToFirestore,
+} from './services/firebase';
 
 const STORAGE_KEY = 'klinikX_patients_v4';
 const CLINIC_STATUS_KEY = 'klinikX_status_v2';
@@ -42,6 +55,7 @@ const ADMIN_AUTH_KEY = 'klinikX_admin_auth_v2';
 const ADMIN_CREDS_KEY = 'klinikX_admin_creds_v2';
 const PATIENT_USER_KEY = 'klinikX_patient_user_v2';
 const PATIENT_ACCOUNTS_KEY = 'klinikX_patient_accounts_v2';
+const CLINIC_ROOMS_KEY = 'klinikX_rooms_v2';
 
 export default function App() {
   const [activePortal, setActivePortal] = useState<PortalType>('landing');
@@ -83,6 +97,27 @@ export default function App() {
       }
     } catch {}
     return INITIAL_PATIENT_ACCOUNTS;
+  });
+
+  // Synchronized Clinic Rooms
+  const [clinicRooms, setClinicRooms] = useState<ExaminationRoom[]>(() => {
+    try {
+      const stored = localStorage.getItem(CLINIC_ROOMS_KEY);
+      if (stored) {
+        const parsed: ExaminationRoom[] = JSON.parse(stored);
+        const hasKhitan = parsed.some((r) => r.name.toLowerCase().includes('khitan'));
+        if (!hasKhitan) {
+          const khitanRoom = DEFAULT_CLINIC_ROOMS.find((r) => r.id === 'room-khitan');
+          if (khitanRoom) {
+            const merged = [...parsed, khitanRoom];
+            localStorage.setItem(CLINIC_ROOMS_KEY, JSON.stringify(merged));
+            return merged;
+          }
+        }
+        return parsed;
+      }
+    } catch {}
+    return DEFAULT_CLINIC_ROOMS;
   });
 
   // Currently logged in Patient User
@@ -155,6 +190,12 @@ export default function App() {
         } catch (err) {
           console.error(err);
         }
+      } else if (e.key === CLINIC_ROOMS_KEY && e.newValue) {
+        try {
+          setClinicRooms(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error(err);
+        }
       } else if (e.key === ADMIN_CREDS_KEY && e.newValue) {
         try {
           setAdminCredentials(JSON.parse(e.newValue));
@@ -179,6 +220,70 @@ export default function App() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Cloud Firestore Real-time Subscriptions (Sync Across Devices)
+  useEffect(() => {
+    testConnection().catch(() => {});
+
+    // Listen to patients in real-time
+    const unsubPatients = subscribePatients(
+      (remotePatients) => {
+        if (remotePatients && remotePatients.length > 0) {
+          setPatients(remotePatients);
+        } else {
+          // If Firestore is empty on initial setup, seed with initial patients
+          INITIAL_PATIENTS.forEach((p) => {
+            syncPatientToFirestore(p).catch(() => {});
+          });
+        }
+      },
+      (err) => {
+        console.warn('Real-time patients sync fallback to local cache:', err);
+      }
+    );
+
+    // Listen to examination rooms in real-time
+    const unsubRooms = subscribeRooms(
+      (remoteRooms) => {
+        if (remoteRooms && remoteRooms.length > 0) {
+          const hasKhitan = remoteRooms.some((r) => r.name.toLowerCase().includes('khitan'));
+          if (!hasKhitan) {
+            const khitanRoom = DEFAULT_CLINIC_ROOMS.find((r) => r.id === 'room-khitan');
+            if (khitanRoom) {
+              const merged = [...remoteRooms, khitanRoom];
+              setClinicRooms(merged);
+              syncRoomsToFirestore(merged).catch(() => {});
+              return;
+            }
+          }
+          setClinicRooms(remoteRooms);
+        } else {
+          syncRoomsToFirestore(DEFAULT_CLINIC_ROOMS).catch(() => {});
+        }
+      },
+      (err) => {
+        console.warn('Real-time rooms sync fallback:', err);
+      }
+    );
+
+    // Listen to clinic operational status
+    const unsubStatus = subscribeClinicStatus(
+      (remoteStatus) => {
+        if (remoteStatus) {
+          setClinicStatus(remoteStatus);
+        }
+      },
+      (err) => {
+        console.warn('Real-time clinic status fallback:', err);
+      }
+    );
+
+    return () => {
+      unsubPatients();
+      unsubRooms();
+      unsubStatus();
+    };
+  }, []);
+
   // Automated Schedule (08:00 - 21:00 WIB) polling check
   useEffect(() => {
     const checkAutoSchedule = () => {
@@ -196,6 +301,7 @@ export default function App() {
           try {
             localStorage.setItem(CLINIC_STATUS_KEY, JSON.stringify(updated));
           } catch {}
+          syncClinicStatusToFirestore(updated).catch(() => {});
         }
       }
     };
@@ -205,7 +311,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [clinicStatus.mode, clinicStatus.isOpen]);
 
-  // Save patients to localStorage
+  // Save patients to localStorage cache
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
@@ -235,6 +341,9 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
+    syncClinicStatusToFirestore(newStatus).catch((err) => {
+      console.error('Failed to sync clinic status to Cloud Firestore:', err);
+    });
     showToast(
       newStatus.isOpen ? 'Klinik Dibuka' : 'Klinik Ditutup',
       newStatus.isOpen
@@ -331,15 +440,29 @@ export default function App() {
       sameServiceCount < 100 ? ('00' + sameServiceCount).slice(-3) : `${sameServiceCount}`;
     const code = `${prefix}-${codeNumber}`;
 
+    const assignedRoom =
+      patientData.assignedRoom ||
+      getDefaultRoomForPatient(patientData.service, patientData.complaint);
+    const matchingRoom = clinicRooms.find(
+      (r) => r.name.toLowerCase() === assignedRoom.toLowerCase()
+    );
+
     const newPatient: Patient = {
       ...patientData,
       id: `pt-${Date.now()}`,
       code,
       status: 'Menunggu',
+      assignedRoom,
+      doctorName: patientData.doctorName || matchingRoom?.doctorName,
       createdAt: new Date().toISOString(),
     };
 
     setPatients((prev) => [newPatient, ...prev]);
+    // Sync new registered patient to Cloud Firestore
+    syncPatientToFirestore(newPatient).catch((err) => {
+      console.error('Failed to sync new patient to Cloud Firestore:', err);
+    });
+
     setActiveTicketPatient(newPatient);
     setIsTicketModalOpen(true);
     setActivePatientTab('my-account');
@@ -394,6 +517,37 @@ export default function App() {
     );
   };
 
+  // Manage Clinic Rooms
+  const handleSaveRooms = (updatedRooms: ExaminationRoom[]) => {
+    setClinicRooms(updatedRooms);
+    try {
+      localStorage.setItem(CLINIC_ROOMS_KEY, JSON.stringify(updatedRooms));
+    } catch {}
+    syncRoomsToFirestore(updatedRooms).catch((err) => {
+      console.error('Failed to sync rooms to Cloud Firestore:', err);
+    });
+    showToast('Ruangan Disimpan', 'Daftar ruangan & poli pemeriksaan berhasil diperbarui.', 'success');
+  };
+
+  const handleAssignRoom = (patientId: string, roomName: string) => {
+    const matchingRoom = clinicRooms.find((r) => r.name.toLowerCase() === roomName.toLowerCase());
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id === patientId) {
+          const updated = {
+            ...p,
+            assignedRoom: roomName,
+            doctorName: matchingRoom?.doctorName || p.doctorName,
+          };
+          syncPatientToFirestore(updated).catch(() => {});
+          return updated;
+        }
+        return p;
+      })
+    );
+    showToast('Ruangan Ditetapkan', `Pasien diarahkan menuju ${roomName}.`, 'success');
+  };
+
   // Call Specific Patient
   const handleCallPatient = (patient: Patient) => {
     // Layanan Home Care tidak menggunakan panggilan pengeras suara klinik
@@ -409,16 +563,18 @@ export default function App() {
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patient.id) {
-          return { ...p, status: 'Dipanggil' };
+          const updated = { ...p, status: 'Dipanggil' as PatientStatus };
+          syncPatientToFirestore(updated).catch(() => {});
+          return updated;
         }
         return p;
       })
     );
 
-    speakCallout(patient.code, patient.name, patient.timeSlot);
+    speakCallout(patient.code, patient.name, patient.timeSlot, patient.assignedRoom);
     showToast(
       'Memanggil Pasien',
-      `Nomor ${patient.code} - ${patient.name} dipanggil ke ruang periksa.`,
+      `Nomor ${patient.code} - ${patient.name} dipanggil menuju ${patient.assignedRoom || 'ruang periksa'}.`,
       'info'
     );
   };
@@ -442,19 +598,23 @@ export default function App() {
     setPatients((prev) =>
       prev.map((p) => {
         if (p.status === 'Dipanggil') {
-          return { ...p, status: 'Selesai' };
+          const finished = { ...p, status: 'Selesai' as PatientStatus };
+          syncPatientToFirestore(finished).catch(() => {});
+          return finished;
         }
         if (p.id === nextWaiting.id) {
-          return { ...p, status: 'Dipanggil' };
+          const calling = { ...p, status: 'Dipanggil' as PatientStatus };
+          syncPatientToFirestore(calling).catch(() => {});
+          return calling;
         }
         return p;
       })
     );
 
-    speakCallout(nextWaiting.code, nextWaiting.name, nextWaiting.timeSlot);
+    speakCallout(nextWaiting.code, nextWaiting.name, nextWaiting.timeSlot, nextWaiting.assignedRoom);
     showToast(
       'Panggilan Berikutnya',
-      `Memanggil ${nextWaiting.code} - ${nextWaiting.name} (${nextWaiting.sessionName})`,
+      `Memanggil ${nextWaiting.code} - ${nextWaiting.name} menuju ${nextWaiting.assignedRoom || 'ruang periksa'}`,
       'success'
     );
   };
@@ -464,7 +624,9 @@ export default function App() {
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
-          return { ...p, status };
+          const updated = { ...p, status };
+          syncPatientToFirestore(updated).catch(() => {});
+          return updated;
         }
         return p;
       })
@@ -488,12 +650,15 @@ export default function App() {
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
-          return {
+          const updated = {
             ...p,
             diagnosis,
             prescription,
+            doctorNotes: prescription ? `${diagnosis} | ${prescription}` : diagnosis,
             vitalSigns,
           };
+          syncPatientToFirestore(updated).catch(() => {});
+          return updated;
         }
         return p;
       })
@@ -506,6 +671,7 @@ export default function App() {
   const handleDeletePatient = (patientId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus data antrean pasien ini?')) {
       setPatients((prev) => prev.filter((p) => p.id !== patientId));
+      deletePatientFromFirestore(patientId).catch(() => {});
       showToast('Data Dihapus', 'Data pasien telah dihapus dari sistem.', 'info');
     }
   };
@@ -514,6 +680,9 @@ export default function App() {
   const handleResetDemoData = () => {
     if (confirm('Kembalikan contoh data pasien awal ke sistem?')) {
       setPatients(INITIAL_PATIENTS);
+      INITIAL_PATIENTS.forEach((p) => {
+        syncPatientToFirestore(p).catch(() => {});
+      });
       showToast('Data Direset', 'Data pasien demo berhasil dimuat ulang.', 'info');
     }
   };
@@ -633,6 +802,7 @@ export default function App() {
             <PatientView
               activeTab={activePatientTab}
               patients={patients}
+              clinicRooms={clinicRooms}
               onRegisterPatient={handleRegisterPatient}
               onOpenCheckTicket={() => {
                 setCheckTicketQuery('');
@@ -659,6 +829,9 @@ export default function App() {
             <AdminView
               patients={patients}
               clinicStatus={clinicStatus}
+              clinicRooms={clinicRooms}
+              onSaveRooms={handleSaveRooms}
+              onAssignRoom={handleAssignRoom}
               onOpenClinicStatusModal={() => setIsClinicStatusModalOpen(true)}
               onCallPatient={handleCallPatient}
               onCallNextPatient={handleCallNextPatient}
@@ -667,6 +840,10 @@ export default function App() {
               onOpenTicket={handleOpenTicket}
               onDeletePatient={handleDeletePatient}
               onOpenWalkInModal={() => setIsWalkInModalOpen(true)}
+              onOpenCheckTicket={() => {
+                setCheckTicketQuery('');
+                setIsCheckTicketModalOpen(true);
+              }}
               onOpenPrintReport={() => setIsPrintReportOpen(true)}
               onResetDemoData={handleResetDemoData}
               onLogout={handleAdminLogout}
@@ -728,6 +905,7 @@ export default function App() {
         onClose={() => setIsWalkInModalOpen(false)}
         onRegister={handleRegisterPatient}
         existingPatients={patients}
+        rooms={clinicRooms}
       />
 
       <CheckTicketModal

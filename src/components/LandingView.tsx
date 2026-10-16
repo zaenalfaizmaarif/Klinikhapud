@@ -115,7 +115,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </h3>
               <p className="text-xs text-slate-600">
                 {myActiveTicket
-                  ? `Jadwal: ${myActiveTicket.sessionName} (${myActiveTicket.timeSlot} WIB) • Status: ${myActiveTicket.status}`
+                  ? `Jadwal: ${myActiveTicket.sessionName} (${myActiveTicket.timeSlot} WIB) • Status: ${myActiveTicket.status} • Masuk: ${myActiveTicket.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}`
                   : 'Anda dapat langsung masuk ke portal pasien untuk melihat jadwal atau mendaftar berobat.'}
               </p>
             </div>

@@ -57,7 +57,7 @@ export function playChime(): Promise<void> {
 /**
  * Speaks queue callout in Indonesian language with graceful fallback
  */
-export async function speakCallout(code: string, name: string, timeSlot?: string) {
+export async function speakCallout(code: string, name: string, timeSlot?: string, roomName?: string) {
   // Play chime first
   await playChime();
 
@@ -67,7 +67,8 @@ export async function speakCallout(code: string, name: string, timeSlot?: string
     window.speechSynthesis.cancel(); // Stop any pending speech
 
     const readableCode = code.replace('-', ' ');
-    const text = `Nomor antrean, ${readableCode}, atas nama, ${name}, ${timeSlot ? `jadwal jam ${timeSlot}` : ''}, silakan memasuki ruang periksa.`;
+    const destination = roomName ? `silakan menuju ke ${roomName}` : 'silakan memasuki ruang periksa';
+    const text = `Nomor antrean, ${readableCode}, atas nama, ${name}, ${destination}.`;
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'id-ID';

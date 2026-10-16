@@ -9,6 +9,7 @@ import {
   User,
   HeartPulse,
   MessageSquare,
+  Building2,
 } from 'lucide-react';
 import { Patient } from '../../types';
 import { formatDateIndo, calculateAge, generateWhatsAppLink } from '../../utils/helpers';
@@ -91,6 +92,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             <div className="text-right">
               <p className="text-slate-400 text-[10px] uppercase font-bold">Tanggal</p>
               <p className="font-bold text-slate-200 mt-0.5">{formatDateIndo(patient.visitDate)}</p>
+            </div>
+          </div>
+
+          {/* Room Destination Box */}
+          <div className="p-3.5 bg-teal-50 border-2 border-teal-300 rounded-2xl flex items-center gap-3 text-left">
+            <div className="w-11 h-11 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div className="flex-1 truncate">
+              <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 block">
+                Ruangan Yang Bakal Dimasuki
+              </span>
+              <p className="text-base font-black text-slate-900 truncate">
+                {patient.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}
+              </p>
+              <p className="text-[11px] text-slate-600 font-semibold truncate">
+                {patient.doctorName ? `👨‍⚕️ Dokter: ${patient.doctorName}` : 'Pemeriksaan Dokter • Lantai 1 Klinik H.APUD'}
+              </p>
             </div>
           </div>
 

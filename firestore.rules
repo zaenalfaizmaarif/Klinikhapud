@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidPatient(data) {
+      return data.keys().hasAll(['id', 'code', 'name', 'phone', 'service', 'status', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.code is string && data.code.size() <= 20
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.phone is string && data.phone.size() <= 30
+        && data.service is string && data.service.size() <= 100
+        && data.status in ['Menunggu', 'Dipanggil', 'Selesai', 'Batal']
+        && (!('assignedRoom' in data) || (data.assignedRoom is string && data.assignedRoom.size() <= 120))
+        && (!('complaint' in data) || (data.complaint is string && data.complaint.size() <= 500))
+        && (!('doctorNotes' in data) || (data.doctorNotes is string && data.doctorNotes.size() <= 1000));
+    }
+
+    function isValidRoom(data) {
+      return data.keys().hasAll(['id', 'name', 'polyName', 'status'])
+        && data.id is string && data.id.size() <= 64
+        && data.name is string && data.name.size() <= 100
+        && data.polyName is string && data.polyName.size() <= 100
+        && data.status in ['Tersedia', 'Sedang Digunakan', 'Sterilisasi'];
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Koleksi Pasien: Pendaftaran online publik & monitoring antrean klinik
+    match /patients/{patientId} {
+      allow read: if true;
+      allow create: if isValidId(patientId) && isValidPatient(incoming());
+      allow update: if isValidId(patientId) && isValidPatient(incoming());
+      allow delete: if isValidId(patientId);
+    }
+
+    // Koleksi Ruangan & Poli
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow write: if isValidId(roomId) && isValidRoom(incoming());
+    }
+
+    // Pengaturan Operasional Klinik
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isValidId(settingId);
+    }
+
+    // Test Connection probe
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

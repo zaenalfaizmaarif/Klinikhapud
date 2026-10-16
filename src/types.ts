@@ -16,6 +16,15 @@ export interface VitalSigns {
   pulse?: string; // Denyut nadi (bpm)
 }
 
+export interface ExaminationRoom {
+  id: string;
+  name: string;
+  polyName: string;
+  doctorName?: string;
+  description?: string;
+  status?: 'Tersedia' | 'Sedang Digunakan' | 'Sterilisasi';
+}
+
 export interface Patient {
   id: string;
   code: string;
@@ -32,6 +41,8 @@ export interface Patient {
   timeSlot: string; // e.g. "08:00"
   complaint: string;
   status: PatientStatus;
+  assignedRoom?: string; // Ruang periksa yang dituju
+  doctorName?: string; // Dokter/tenaga medis yang memeriksa
   vitalSigns?: VitalSigns;
   diagnosis?: string;
   prescription?: string;

@@ -1,0 +1,171 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Rekam pendaftaran antrean dan data identitas pasien klinik",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID unik dokumen pasien"
+        },
+        "code": {
+          "type": "string",
+          "description": "Nomor antrean pasien (misal A-001, K-001)",
+          "maxLength": 20
+        },
+        "name": {
+          "type": "string",
+          "description": "Nama lengkap pasien",
+          "maxLength": 100
+        },
+        "nik": {
+          "type": "string",
+          "description": "Nomor Induk Kependudukan",
+          "maxLength": 20
+        },
+        "phone": {
+          "type": "string",
+          "description": "Nomor WhatsApp atau telepon",
+          "maxLength": 30
+        },
+        "gender": {
+          "type": "string",
+          "description": "Jenis kelamin L atau P",
+          "enum": ["L", "P"]
+        },
+        "birthDate": {
+          "type": "string",
+          "description": "Tanggal lahir pasien"
+        },
+        "address": {
+          "type": "string",
+          "description": "Alamat tempat tinggal",
+          "maxLength": 300
+        },
+        "service": {
+          "type": "string",
+          "description": "Layanan atau poli medis yang dipilih",
+          "maxLength": 100
+        },
+        "complaint": {
+          "type": "string",
+          "description": "Keluhan atau alasan berobat",
+          "maxLength": 500
+        },
+        "session": {
+          "type": "string",
+          "description": "Sesi waktu kedatangan antrean",
+          "maxLength": 50
+        },
+        "status": {
+          "type": "string",
+          "description": "Status antrean saat ini",
+          "enum": ["Menunggu", "Dipanggil", "Selesai", "Batal"]
+        },
+        "assignedRoom": {
+          "type": "string",
+          "description": "Ruangan pemeriksaan yang ditugaskan",
+          "maxLength": 120
+        },
+        "doctorNotes": {
+          "type": "string",
+          "description": "Catatan rekam medis singkat dokter",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Waktu pendaftaran pasien dibuat"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Waktu perubahan terakhir"
+        }
+      },
+      "required": ["id", "code", "name", "phone", "service", "status", "createdAt"]
+    },
+    "ExaminationRoom": {
+      "title": "ExaminationRoom",
+      "description": "Daftar ruangan periksa, poli, dan dokter jaga klinik",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID ruangan periksa",
+          "maxLength": 50
+        },
+        "name": {
+          "type": "string",
+          "description": "Nama ruangan",
+          "maxLength": 100
+        },
+        "polyName": {
+          "type": "string",
+          "description": "Nama poli medis",
+          "maxLength": 100
+        },
+        "doctorName": {
+          "type": "string",
+          "description": "Nama dokter atau tenaga medis bertugas",
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Lokasi atau keterangan ruangan",
+          "maxLength": 200
+        },
+        "status": {
+          "type": "string",
+          "description": "Status ketersediaan ruangan",
+          "enum": ["Tersedia", "Sedang Digunakan", "Sterilisasi"]
+        }
+      },
+      "required": ["id", "name", "polyName", "status"]
+    },
+    "ClinicStatus": {
+      "title": "ClinicStatus",
+      "description": "Status operasional buka tutup klinik",
+      "type": "object",
+      "properties": {
+        "isOpen": {
+          "type": "boolean",
+          "description": "Apakah klinik saat ini sedang buka"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Mode jadwal auto atau manual",
+          "enum": ["auto", "manual"]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Alasan tutup atau info operasional",
+          "maxLength": 200
+        },
+        "reopenEstimate": {
+          "type": "string",
+          "description": "Estimasi waktu buka kembali",
+          "maxLength": 100
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Waktu pembaruan status"
+        }
+      },
+      "required": ["isOpen", "mode"]
+    }
+  },
+  "firestore": {
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Koleksi data antrean dan pendaftaran pasien klinik"
+    },
+    "/rooms/{roomId}": {
+      "schema": "ExaminationRoom",
+      "description": "Koleksi informasi ruangan periksa dan poli klinik"
+    },
+    "/settings/{settingId}": {
+      "schema": "ClinicStatus",
+      "description": "Pengaturan status operasional klinik"
+    }
+  }
+}

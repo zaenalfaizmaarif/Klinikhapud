@@ -1,0 +1,6 @@
+{
+  "summary": "Rencana implementasi integrasi Firebase Cloud Firestore untuk sinkronisasi antrean dan data pasien secara real-time antar perangkat (online multi-user), penyempurnaan ruang khitan, pengecekan seluruh tiket pasien di admin, serta pembersihan opsi export yang tidak diperlukan.",
+  "updatedAt": "2026-10-16T01:34:00.020998642Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

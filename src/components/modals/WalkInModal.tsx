@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
-import { UserPlus, X, Clock, Calendar } from 'lucide-react';
-import { Patient, ServiceType, SessionName } from '../../types';
-import { SESSION_TIME_SLOTS, MAX_PATIENTS_PER_SLOT } from '../../data/constants';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, X, Clock, Calendar, Building2 } from 'lucide-react';
+import { Patient, ServiceType, SessionName, ExaminationRoom } from '../../types';
+import {
+  SESSION_TIME_SLOTS,
+  MAX_PATIENTS_PER_SLOT,
+  DEFAULT_CLINIC_ROOMS,
+  getDefaultRoomForPatient,
+} from '../../data/constants';
 
 interface WalkInModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRegister: (data: Omit<Patient, 'id' | 'code' | 'status' | 'createdAt'>) => void;
   existingPatients: Patient[];
+  rooms?: ExaminationRoom[];
 }
 
 export const WalkInModal: React.FC<WalkInModalProps> = ({
@@ -15,6 +21,7 @@ export const WalkInModal: React.FC<WalkInModalProps> = ({
   onClose,
   onRegister,
   existingPatients,
+  rooms = DEFAULT_CLINIC_ROOMS,
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -29,6 +36,11 @@ export const WalkInModal: React.FC<WalkInModalProps> = ({
   const [sessionName, setSessionName] = useState<SessionName>('Sesi 1');
   const [timeSlot, setTimeSlot] = useState<string>('08:00');
   const [complaint, setComplaint] = useState('');
+  const [assignedRoom, setAssignedRoom] = useState<string>('');
+
+  useEffect(() => {
+    setAssignedRoom(getDefaultRoomForPatient(service, complaint));
+  }, [service, complaint]);
 
   if (!isOpen) return null;
 
@@ -37,6 +49,9 @@ export const WalkInModal: React.FC<WalkInModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    const finalRoom = assignedRoom || getDefaultRoomForPatient(service, complaint);
+    const matched = rooms.find((r) => r.name.toLowerCase() === finalRoom.toLowerCase());
 
     onRegister({
       name: name.trim(),
@@ -51,6 +66,8 @@ export const WalkInModal: React.FC<WalkInModalProps> = ({
       sessionName,
       timeSlot,
       complaint: complaint.trim() || 'Konsultasi keluhan umum',
+      assignedRoom: finalRoom,
+      doctorName: matched?.doctorName,
     });
 
     onClose();
@@ -229,6 +246,29 @@ export const WalkInModal: React.FC<WalkInModalProps> = ({
               placeholder="Contoh: Sakit kepala dan demam..."
               className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none"
             />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                <span>Ruangan Tujuan Periksa</span>
+              </label>
+              <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded">
+                Saran otomatis aktif
+              </span>
+            </div>
+            <select
+              value={assignedRoom}
+              onChange={(e) => setAssignedRoom(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-teal-300 bg-teal-50/50 outline-none font-bold text-teal-900"
+            >
+              {rooms.map((r) => (
+                <option key={r.id} value={r.name}>
+                  {r.name} {r.doctorName ? `(${r.doctorName})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">

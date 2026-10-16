@@ -8,6 +8,7 @@ import {
   LogOut,
   User,
   Ticket,
+  Cloud,
 } from 'lucide-react';
 import { PortalType, PatientTab, ClinicStatus, PatientUser } from '../types';
 import { getWIBTime } from '../utils/schedule';
@@ -141,14 +142,27 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{timeStr}</span>
             </div>
 
-            {/* Quick Check Ticket Button (For Patients) */}
+            {/* Cloud Real-time Status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-teal-50/90 text-teal-800 border border-teal-200 shadow-2xs"
+              title="Database Online Cloud Firestore Aktif: Data pasien & antrean tersinkronisasi otomatis antar semua perangkat"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-600"></span>
+              </span>
+              <Cloud className="w-3.5 h-3.5 text-teal-600" />
+              <span className="hidden md:inline font-bold">Cloud Online</span>
+            </div>
+
+            {/* Quick Check Ticket Button */}
             <button
               onClick={onOpenCheckTicket}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
-              title="Cek Status Tiket Antrean"
+              title="Cek Seluruh Tiket Pasien"
             >
               <Search className="w-4 h-4 text-teal-600" />
-              <span className="hidden md:inline">Cek Tiket Saya</span>
+              <span className="hidden md:inline">Cek Tiket Pasien</span>
             </button>
 
             {/* Patient Logged In Profile & Logout (No Portal Switcher) */}
