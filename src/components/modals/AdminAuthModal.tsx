@@ -7,6 +7,7 @@ interface AdminAuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
   adminCredentials?: AdminCredentials;
+  onForgotPassword?: () => void;
 }
 
 export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
@@ -14,6 +15,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   onClose,
   onSuccess,
   adminCredentials,
+  onForgotPassword,
 }) => {
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -90,6 +92,21 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             </button>
           </div>
 
+          <div className="flex justify-end pt-1">
+            {onForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onForgotPassword();
+                }}
+                className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline transition cursor-pointer"
+              >
+                Lupa Sandi Admin?
+              </button>
+            )}
+          </div>
+
           {errorMsg && (
             <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4 shrink-0" />
@@ -97,7 +114,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             </p>
           )}
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}

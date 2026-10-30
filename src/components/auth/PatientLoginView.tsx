@@ -12,20 +12,24 @@ import {
   LogIn,
 } from 'lucide-react';
 import { PatientUser, PatientAccount } from '../../types';
+import { PatientForgotPasswordModal } from '../modals/PatientForgotPasswordModal';
 
 interface PatientLoginViewProps {
   onLoginSuccess: (user: PatientUser) => void;
   onBackToLanding?: () => void;
   patientAccounts: PatientAccount[];
   onRegisterNewAccount: (account: PatientAccount) => void;
+  onUpdatePatientAccountPassword?: (accountId: string, newPassword: string) => void;
 }
 
 export const PatientLoginView: React.FC<PatientLoginViewProps> = ({
   onLoginSuccess,
   patientAccounts,
   onRegisterNewAccount,
+  onUpdatePatientAccountPassword,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   // Login form state
   const [loginName, setLoginName] = useState('');
@@ -264,6 +268,15 @@ export const PatientLoginView: React.FC<PatientLoginViewProps> = ({
                   {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(true)}
+                  className="text-xs font-bold text-teal-700 hover:text-teal-900 hover:underline transition cursor-pointer"
+                >
+                  Lupa Kata Sandi?
+                </button>
+              </div>
             </div>
 
             <button
@@ -478,6 +491,20 @@ export const PatientLoginView: React.FC<PatientLoginViewProps> = ({
           </form>
         )}
       </div>
+
+      {/* Modal Lupa Sandi Pasien */}
+      {onUpdatePatientAccountPassword && (
+        <PatientForgotPasswordModal
+          isOpen={isForgotPasswordOpen}
+          onClose={() => setIsForgotPasswordOpen(false)}
+          patientAccounts={patientAccounts}
+          onUpdatePatientAccountPassword={onUpdatePatientAccountPassword}
+          onSuccessReset={(account, newPass) => {
+            setLoginName(account.name);
+            setLoginPassword(newPass);
+          }}
+        />
+      )}
     </div>
   );
 };

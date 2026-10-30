@@ -35,6 +35,7 @@ import { WalkInModal } from './components/modals/WalkInModal';
 import { CheckTicketModal } from './components/modals/CheckTicketModal';
 import { ClinicStatusModal } from './components/modals/ClinicStatusModal';
 import { ChangeAdminPasswordModal } from './components/modals/ChangeAdminPasswordModal';
+import { AdminForgotPasswordModal } from './components/modals/AdminForgotPasswordModal';
 import { ChangePatientPasswordModal } from './components/modals/ChangePatientPasswordModal';
 import { PrintableReport } from './components/PrintableReport';
 import { speakCallout } from './utils/audio';
@@ -49,6 +50,8 @@ import {
   syncClinicStatusToFirestore,
   subscribeAdminCredentials,
   syncAdminCredentialsToFirestore,
+  subscribePatientAccounts,
+  syncPatientAccountsToFirestore,
 } from './services/firebase';
 
 const STORAGE_KEY = 'klinikX_patients_v4';
@@ -179,6 +182,7 @@ export default function App() {
   const [isClinicStatusModalOpen, setIsClinicStatusModalOpen] = useState(false);
   const [openStatusModalAfterAuth, setOpenStatusModalAfterAuth] = useState(false);
   const [isChangeAdminPasswordOpen, setIsChangeAdminPasswordOpen] = useState(false);
+  const [isAdminForgotPasswordOpen, setIsAdminForgotPasswordOpen] = useState(false);
   const [isChangePatientPasswordOpen, setIsChangePatientPasswordOpen] = useState(false);
 
   // Synchronize across browser tabs
@@ -303,11 +307,26 @@ export default function App() {
       }
     );
 
+    // Listen to patient accounts
+    const unsubAccounts = subscribePatientAccounts(
+      (remoteAccounts: PatientAccount[]) => {
+        if (remoteAccounts && remoteAccounts.length > 0) {
+          setPatientAccounts(remoteAccounts);
+        } else {
+          syncPatientAccountsToFirestore(INITIAL_PATIENT_ACCOUNTS).catch(() => {});
+        }
+      },
+      (err: unknown) => {
+        console.warn('Real-time patient accounts fallback:', err);
+      }
+    );
+
     return () => {
       unsubPatients();
       unsubRooms();
       unsubStatus();
       unsubCreds();
+      unsubAccounts();
     };
   }, []);
 
@@ -403,9 +422,32 @@ export default function App() {
       } catch (e) {
         console.error(e);
       }
+      syncPatientAccountsToFirestore(next).catch(() => {});
       return next;
     });
     showToast('Akun Pasien Dibuat', `Akun atas nama ${account.name} berhasil terdaftar.`, 'success');
+  };
+
+  // Update Patient Password by ID (Lupa Sandi)
+  const handleUpdatePatientAccountPassword = (accountId: string, newPass: string) => {
+    setPatientAccounts((prev) => {
+      const updated = prev.map((acc) => {
+        if (acc.id === accountId) {
+          return { ...acc, password: newPass };
+        }
+        return acc;
+      });
+      try {
+        localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      syncPatientAccountsToFirestore(updated).catch((err: unknown) => {
+        console.error('Failed to sync patient accounts to Firestore:', err);
+      });
+      return updated;
+    });
+    showToast('Sandi Pasien Diperbarui', 'Kata sandi akun pasien Anda berhasil disimpan dan tersinkron.', 'success');
   };
 
   // Update Patient Password
@@ -425,6 +467,7 @@ export default function App() {
         } catch (e) {
           console.error(e);
         }
+        syncPatientAccountsToFirestore(updated).catch(() => {});
       }
       return updated;
     });
@@ -827,6 +870,7 @@ export default function App() {
               onBackToLanding={() => setActivePortal('landing')}
               patientAccounts={patientAccounts}
               onRegisterNewAccount={handleRegisterNewAccount}
+              onUpdatePatientAccountPassword={handleUpdatePatientAccountPassword}
             />
           ) : (
             <PatientView
@@ -854,6 +898,7 @@ export default function App() {
               onLoginSuccess={handleAdminLoginSuccess}
               onBackToLanding={() => setActivePortal('landing')}
               adminCredentials={adminCredentials}
+              onUpdateAdminCredentials={handleUpdateAdminCredentials}
             />
           ) : (
             <AdminView
@@ -903,6 +948,10 @@ export default function App() {
           setOpenStatusModalAfterAuth(false);
         }}
         adminCredentials={adminCredentials}
+        onForgotPassword={() => {
+          setIsAdminAuthOpen(false);
+          setIsAdminForgotPasswordOpen(true);
+        }}
         onSuccess={() => {
           setIsAdminAuthOpen(false);
           setIsAdminLoggedIn(true);
@@ -966,6 +1015,16 @@ export default function App() {
         onClose={() => setIsChangeAdminPasswordOpen(false)}
         adminCredentials={adminCredentials}
         onUpdateCredentials={handleUpdateAdminCredentials}
+      />
+
+      <AdminForgotPasswordModal
+        isOpen={isAdminForgotPasswordOpen}
+        onClose={() => setIsAdminForgotPasswordOpen(false)}
+        adminCredentials={adminCredentials}
+        onUpdateAdminCredentials={handleUpdateAdminCredentials}
+        onSuccessReset={(newPass) => {
+          showToast('Sandi Admin Diperbarui', 'Kata sandi admin berhasil diperbarui dan tersinkron ke Cloud!', 'success');
+        }}
       />
 
       {patientUser && (

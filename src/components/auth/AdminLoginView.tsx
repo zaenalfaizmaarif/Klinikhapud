@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, Eye, EyeOff, ArrowLeft, KeyRound, AlertCircle } from 'lucide-react';
 import { AdminCredentials } from '../../types';
+import { AdminForgotPasswordModal } from '../modals/AdminForgotPasswordModal';
 
 interface AdminLoginViewProps {
   onLoginSuccess: () => void;
   onBackToLanding: () => void;
   adminCredentials?: AdminCredentials;
+  onUpdateAdminCredentials?: (newCreds: AdminCredentials) => void;
 }
 
 export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   onLoginSuccess,
   onBackToLanding,
   adminCredentials,
+  onUpdateAdminCredentials,
 }) => {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   const activePassword = adminCredentials?.password || 'admin123';
   const activeUsername = adminCredentials?.username || 'admin';
@@ -62,7 +66,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
           </span>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Login Admin</h2>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            Masukkan akun kredensial petugas untuk mengelola antrean pasien, memanggil, dan merekam data medis Klinik H.APUD.
+            Masukkan username dan kata sandi petugas untuk mengelola antrean pasien, memanggil, dan merekam data medis Klinik H.APUD.
           </p>
         </div>
 
@@ -122,6 +126,16 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {/* Lupa Kata Sandi Button */}
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setIsForgotPasswordOpen(true)}
+                className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline transition cursor-pointer"
+              >
+                Lupa Kata Sandi?
+              </button>
+            </div>
           </div>
 
           {/* Submit Button */}
@@ -133,18 +147,6 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             <span>Masuk ke Dashboard Admin</span>
           </button>
         </form>
-
-        {/* Info Hint Kredensial Bawaan */}
-        <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 text-center space-y-1">
-          <p className="text-[11px] text-slate-500 font-semibold">
-            Kredensial Akses Petugas & Admin:
-          </p>
-          <div className="flex items-center justify-center gap-2 text-xs font-mono font-bold text-slate-800">
-            <span>User: <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{activeUsername}</span></span>
-            <span>•</span>
-            <span>Sandi: <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{activePassword}</span></span>
-          </div>
-        </div>
 
         {/* Back Link */}
         <div className="border-t border-slate-100 pt-4 text-center">
@@ -158,6 +160,19 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal Lupa Sandi Admin */}
+      {adminCredentials && onUpdateAdminCredentials && (
+        <AdminForgotPasswordModal
+          isOpen={isForgotPasswordOpen}
+          onClose={() => setIsForgotPasswordOpen(false)}
+          adminCredentials={adminCredentials}
+          onUpdateAdminCredentials={onUpdateAdminCredentials}
+          onSuccessReset={(newPass) => {
+            setPassword(newPass);
+          }}
+        />
+      )}
     </div>
   );
 };

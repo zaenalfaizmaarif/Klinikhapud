@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import {
   getFirestore,
   collection,
@@ -15,7 +15,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Patient, ExaminationRoom, ClinicStatus, AdminCredentials } from '../types';
+import { Patient, ExaminationRoom, ClinicStatus, AdminCredentials, PatientAccount } from '../types';
 
 // Initialize Firebase App
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -23,6 +23,11 @@ export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfi
 // CRITICAL: Must pass firebaseConfig.firestoreDatabaseId to getFirestore
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// Authenticate anonymously so client has valid credentials for cloud transactions
+signInAnonymously(auth).catch((err) => {
+  console.log('Firebase auth session initialized without anonymous sign-in:', err?.message || err);
+});
 
 export enum OperationType {
   CREATE = 'create',
@@ -273,4 +278,41 @@ export async function syncAdminCredentialsToFirestore(creds: AdminCredentials): 
     throw error;
   }
 }
+
+/**
+ * Real-time listener for Patient Accounts
+ */
+export function subscribePatientAccounts(
+  onData: (accounts: PatientAccount[]) => void,
+  onError?: (err: unknown) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, SETTINGS_COL, 'patientAccounts'),
+    (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.accounts)) {
+          onData(data.accounts as PatientAccount[]);
+        }
+      }
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, `${SETTINGS_COL}/patientAccounts`);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Save patient accounts to Firestore
+ */
+export async function syncPatientAccountsToFirestore(accounts: PatientAccount[]): Promise<void> {
+  try {
+    await setDoc(doc(db, SETTINGS_COL, 'patientAccounts'), { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${SETTINGS_COL}/patientAccounts`);
+    throw error;
+  }
+}
+
 
