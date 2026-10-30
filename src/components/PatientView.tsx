@@ -247,7 +247,7 @@ export const PatientView: React.FC<PatientViewProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 rounded-full inline-block">
-                      Portal Akun Pasien
+                      Akun Pasien
                     </span>
                     <span className="text-xs font-bold text-slate-400">• Terverifikasi</span>
                   </div>

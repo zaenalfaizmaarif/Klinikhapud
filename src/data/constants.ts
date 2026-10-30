@@ -1,4 +1,4 @@
-import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount, ExaminationRoom } from '../types';
+import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount, ExaminationRoom, Doctor } from '../types';
 
 export const DEFAULT_CLINIC_ROOMS: ExaminationRoom[] = [
   {
@@ -51,6 +51,59 @@ export const DEFAULT_CLINIC_ROOMS: ExaminationRoom[] = [
   },
 ];
 
+export const DEFAULT_DOCTORS: Doctor[] = [
+  {
+    id: 'doc-1',
+    name: 'dr. H. Apud S.',
+    specialty: 'Dokter Umum & Penanggung Jawab Medis',
+    sipNumber: '446.1/SIP-D/2023/089',
+    phone: '0812-9876-0001',
+    assignedPoly: 'Poli Umum & Tindakan Bedah Luka',
+    schedule: 'Senin - Sabtu (08:00 - 21:00 WIB)',
+    status: 'Praktik',
+  },
+  {
+    id: 'doc-2',
+    name: 'Bidan Hj. Dewi R., S.Tr.Keb',
+    specialty: 'Kebidanan, KIA, Imunisasi & KB',
+    sipNumber: '446.2/SIPB/2022/045',
+    phone: '0812-9876-0002',
+    assignedPoly: 'Poli KIA / Ibu & Anak',
+    schedule: 'Senin - Sabtu (08:00 - 16:00 WIB)',
+    status: 'Praktik',
+  },
+  {
+    id: 'doc-3',
+    name: 'dr. H. Apud S. & Tim Khitan',
+    specialty: 'Khitan / Sunat Modern & Bedah Minor',
+    sipNumber: '446.1/SIP-KHITAN/2024/012',
+    phone: '0812-9876-0003',
+    assignedPoly: 'Ruang Khitan / Sunat Modern',
+    schedule: 'Setiap Hari (Sesuai Booking Jadwal)',
+    status: 'Praktik',
+  },
+  {
+    id: 'doc-4',
+    name: 'Analis Medis Klinik',
+    specialty: 'Diagnostik Laboratorium & Patologi Klinis',
+    sipNumber: '446.3/SIP-ATLM/2023/102',
+    phone: '0812-9876-0004',
+    assignedPoly: 'Laboratorium & Cek Darah',
+    schedule: 'Senin - Minggu (08:00 - 20:00 WIB)',
+    status: 'Praktik',
+  },
+  {
+    id: 'doc-5',
+    name: 'Tim Perawat Home Care',
+    specialty: 'Perawat Pelayanan Medis Kunjungan Rumah',
+    sipNumber: '446.4/SIPP/2023/218',
+    phone: '0812-9876-0005',
+    assignedPoly: 'Kunjungan Luar (Home Care)',
+    schedule: 'Sesuai Janji Kunjungan Pasien',
+    status: 'Aktif',
+  },
+];
+
 export function getDefaultRoomForPatient(service: ServiceType, complaint: string = ''): string {
   const lowerService = service.toLowerCase();
   const lowerComplaint = complaint.toLowerCase();
@@ -100,7 +153,7 @@ export function getDefaultRoomForPatient(service: ServiceType, complaint: string
 
 export const DEFAULT_ADMIN_CREDENTIALS: AdminCredentials = {
   username: 'admin',
-  password: 'KlinikApud#2026',
+  password: 'admin123',
   updatedAt: new Date().toISOString(),
 };
 

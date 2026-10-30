@@ -226,7 +226,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <button
             onClick={onLogout}
             className="p-3 bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-2xl text-xs transition cursor-pointer"
-            title="Keluar dari Portal Admin"
+            title="Keluar dari Admin"
           >
             <LogOut className="w-4 h-4" />
           </button>

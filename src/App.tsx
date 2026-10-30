@@ -47,6 +47,8 @@ import {
   syncRoomsToFirestore,
   subscribeClinicStatus,
   syncClinicStatusToFirestore,
+  subscribeAdminCredentials,
+  syncAdminCredentialsToFirestore,
 } from './services/firebase';
 
 const STORAGE_KEY = 'klinikX_patients_v4';
@@ -82,7 +84,11 @@ export default function App() {
     try {
       const stored = localStorage.getItem(ADMIN_CREDS_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (parsed.password === 'KlinikApud#2026') {
+          return DEFAULT_ADMIN_CREDENTIALS;
+        }
+        return parsed;
       }
     } catch {}
     return DEFAULT_ADMIN_CREDENTIALS;
@@ -277,10 +283,31 @@ export default function App() {
       }
     );
 
+    // Listen to admin credentials
+    const unsubCreds = subscribeAdminCredentials(
+      (remoteCreds) => {
+        if (remoteCreds && remoteCreds.password) {
+          if (remoteCreds.password === 'KlinikApud#2026') {
+            const updated = { ...remoteCreds, password: 'admin123' };
+            setAdminCredentials(updated);
+            syncAdminCredentialsToFirestore(updated).catch(() => {});
+          } else {
+            setAdminCredentials(remoteCreds);
+          }
+        } else {
+          syncAdminCredentialsToFirestore(DEFAULT_ADMIN_CREDENTIALS).catch(() => {});
+        }
+      },
+      (err) => {
+        console.warn('Real-time admin credentials fallback:', err);
+      }
+    );
+
     return () => {
       unsubPatients();
       unsubRooms();
       unsubStatus();
+      unsubCreds();
     };
   }, []);
 
@@ -361,7 +388,10 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    showToast('Sandi Admin Diperbarui', 'Kata sandi admin baru berhasil disimpan dan tersinkron.', 'success');
+    syncAdminCredentialsToFirestore(newCreds).catch((err) => {
+      console.error('Failed to sync admin credentials to Cloud Firestore:', err);
+    });
+    showToast('Sandi Admin Diperbarui', 'Kata sandi admin baru berhasil disimpan dan tersinkron ke Cloud.', 'success');
   };
 
   // Register New Patient Account
@@ -697,7 +727,7 @@ export default function App() {
     setIsAdminLoggedIn(false);
     localStorage.removeItem(ADMIN_AUTH_KEY);
     setActivePortal('landing');
-    showToast('Keluar', 'Anda telah keluar dari Portal Admin.', 'info');
+    showToast('Keluar', 'Anda telah keluar dari sesi Admin.', 'info');
   };
 
   const handlePatientLoginSuccess = (user: PatientUser) => {
@@ -708,7 +738,7 @@ export default function App() {
     } catch {}
     showToast(
       'Masuk Berhasil',
-      `Selamat datang, ${user.name}! Anda masuk ke portal akun pendaftaran Anda.`,
+      `Selamat datang, ${user.name}! Anda masuk ke akun pendaftaran Anda.`,
       'success'
     );
   };
@@ -914,6 +944,8 @@ export default function App() {
         patients={patients}
         onSelectTicket={handleOpenTicket}
         initialQuery={checkTicketQuery}
+        isAdminLoggedIn={isAdminLoggedIn}
+        patientUser={patientUser}
       />
 
       <PrintableReport

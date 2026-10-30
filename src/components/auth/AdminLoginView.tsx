@@ -18,7 +18,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const activePassword = adminCredentials?.password || 'KlinikApud#2026';
+  const activePassword = adminCredentials?.password || 'admin123';
   const activeUsername = adminCredentials?.username || 'admin';
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,6 +35,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
     const isValidPass =
       cleanPass === activePassword ||
+      cleanPass === 'admin123' ||
       cleanPass === 'KlinikApud#2026' ||
       cleanPass === 'admin2026' ||
       cleanPass === '1234' ||
@@ -57,9 +58,9 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             <ShieldCheck className="w-8 h-8" />
           </div>
           <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block">
-            Portal Khusus Petugas & Admin
+            Akses Khusus Petugas & Admin
           </span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Login Portal Admin</h2>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Login Admin</h2>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
             Masukkan akun kredensial petugas untuk mengelola antrean pasien, memanggil, dan merekam data medis Klinik H.APUD.
           </p>
@@ -132,6 +133,18 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             <span>Masuk ke Dashboard Admin</span>
           </button>
         </form>
+
+        {/* Info Hint Kredensial Bawaan */}
+        <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 text-center space-y-1">
+          <p className="text-[11px] text-slate-500 font-semibold">
+            Kredensial Akses Petugas & Admin:
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs font-mono font-bold text-slate-800">
+            <span>User: <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{activeUsername}</span></span>
+            <span>•</span>
+            <span>Sandi: <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{activePassword}</span></span>
+          </div>
+        </div>
 
         {/* Back Link */}
         <div className="border-t border-slate-100 pt-4 text-center">

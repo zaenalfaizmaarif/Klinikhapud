@@ -29,8 +29,13 @@ export const ChangeAdminPasswordModal: React.FC<ChangeAdminPasswordModalProps> =
     setErrorMsg('');
     setSuccessMsg('');
 
-    // Check current password
-    if (currentPasswordInput.trim() !== adminCredentials.password) {
+    // Check current password (supports active password, new default admin123, or old KlinikApud#2026)
+    const isOldValid =
+      currentPasswordInput.trim() === adminCredentials.password ||
+      currentPasswordInput.trim() === 'admin123' ||
+      currentPasswordInput.trim() === 'KlinikApud#2026';
+
+    if (!isOldValid) {
       setErrorMsg('Sandi lama yang Anda masukkan tidak sesuai!');
       return;
     }
@@ -52,7 +57,7 @@ export const ChangeAdminPasswordModal: React.FC<ChangeAdminPasswordModalProps> =
     };
 
     onUpdateCredentials(updated);
-    setSuccessMsg('Sandi Admin baru berhasil disimpan dan tersinkron!');
+    setSuccessMsg('Sandi Admin baru berhasil disimpan dan tersinkron ke Cloud!');
     setTimeout(() => {
       onClose();
       setCurrentPasswordInput('');
@@ -97,6 +102,17 @@ export const ChangeAdminPasswordModal: React.FC<ChangeAdminPasswordModalProps> =
           </div>
         )}
 
+        {/* Info Petunjuk Sandi Saat Ini */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 text-xs text-amber-900 space-y-1">
+          <p className="font-bold flex items-center gap-1.5 text-amber-950">
+            <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+            <span>Sandi Admin Aktif Saat Ini:</span>
+          </p>
+          <p className="text-[11px] text-amber-800">
+            Sandi saat ini: <strong className="font-mono bg-white px-2 py-0.5 rounded-md border border-amber-300 font-bold text-amber-950">{adminCredentials.password}</strong> (Username: <span className="font-mono">{adminCredentials.username}</span>).
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4 text-xs sm:text-sm">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -107,7 +123,7 @@ export const ChangeAdminPasswordModal: React.FC<ChangeAdminPasswordModalProps> =
               required
               value={currentPasswordInput}
               onChange={(e) => setCurrentPasswordInput(e.target.value)}
-              placeholder="Masukkan sandi saat ini"
+              placeholder={`Masukkan sandi saat ini (${adminCredentials.password})`}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm"
             />
           </div>
@@ -121,7 +137,7 @@ export const ChangeAdminPasswordModal: React.FC<ChangeAdminPasswordModalProps> =
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Sandi baru (contoh: KlinikApud#2026)"
+              placeholder="Masukkan sandi baru (minimal 4 karakter)"
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm"
             />
           </div>

@@ -16,6 +16,19 @@ export interface VitalSigns {
   pulse?: string; // Denyut nadi (bpm)
 }
 
+export type StaffRole = 'admin' | 'petugas';
+
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  phone?: string;
+  sipNumber?: string;
+  schedule: string;
+  assignedPoly: string;
+  status: 'Aktif' | 'Cuti' | 'Praktik';
+}
+
 export interface ExaminationRoom {
   id: string;
   name: string;

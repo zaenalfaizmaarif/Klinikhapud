@@ -15,7 +15,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Patient, ExaminationRoom, ClinicStatus } from '../types';
+import { Patient, ExaminationRoom, ClinicStatus, AdminCredentials } from '../types';
 
 // Initialize Firebase App
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -240,3 +240,37 @@ export async function syncClinicStatusToFirestore(status: ClinicStatus): Promise
     throw error;
   }
 }
+
+/**
+ * Real-time listener for Admin Credentials
+ */
+export function subscribeAdminCredentials(
+  onData: (creds: AdminCredentials) => void,
+  onError?: (err: unknown) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, SETTINGS_COL, 'adminCredentials'),
+    (snap) => {
+      if (snap.exists()) {
+        onData(snap.data() as AdminCredentials);
+      }
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, `${SETTINGS_COL}/adminCredentials`);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Save admin credentials to Firestore
+ */
+export async function syncAdminCredentialsToFirestore(creds: AdminCredentials): Promise<void> {
+  try {
+    await setDoc(doc(db, SETTINGS_COL, 'adminCredentials'), creds, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${SETTINGS_COL}/adminCredentials`);
+    throw error;
+  }
+}
+

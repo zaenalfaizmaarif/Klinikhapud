@@ -159,10 +159,12 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenCheckTicket}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
-              title="Cek Seluruh Tiket Pasien"
+              title={isAdminLoggedIn ? "Cek Seluruh Tiket Pasien (Panel Petugas)" : "Cek & Lacak Tiket Antrean Saya (Pribadi)"}
             >
               <Search className="w-4 h-4 text-teal-600" />
-              <span className="hidden md:inline">Cek Tiket Pasien</span>
+              <span className="hidden md:inline">
+                {isAdminLoggedIn ? "Cek Seluruh Tiket" : "Cek Tiket Saya"}
+              </span>
             </button>
 
             {/* Patient Logged In Profile & Logout (No Portal Switcher) */}
@@ -196,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onLogoutAdmin}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-rose-900 text-white font-semibold text-xs sm:text-sm transition shadow-xs cursor-pointer"
-                title="Keluar dari Portal Admin"
+                title="Keluar dari Admin"
               >
                 <LogOut className="w-4 h-4 text-rose-400" />
                 <span>Keluar Admin</span>

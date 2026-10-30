@@ -204,7 +204,7 @@ export function exportToCSV(patients: Patient[]) {
 
 export function exportToMySQLScript(
   patients: Patient[],
-  adminPassword = 'KlinikApud#2026'
+  adminPassword = 'admin123'
 ) {
   const escapeSql = (str?: string | null) => {
     if (!str) return 'NULL';
