@@ -607,14 +607,26 @@ export const PatientView: React.FC<PatientViewProps> = ({
                   <Sparkles className="w-3.5 h-3.5 text-teal-600" />
                   <span>PENDAFTARAN PASIEN (LANGSUNG TANPA LOGIN)</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={onOpenCheckTicket}
-                  className="text-xs font-bold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-1 rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Cek Status / Cari Tiket Saya</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!patientUser && onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab('my-account')}
+                      className="text-xs font-bold text-slate-700 hover:text-teal-900 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <User className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Masuk Akun Pasien</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onOpenCheckTicket}
+                    className="text-xs font-bold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-1 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Cek Status / Cari Tiket Saya</span>
+                  </button>
+                </div>
               </div>
 
               <div>

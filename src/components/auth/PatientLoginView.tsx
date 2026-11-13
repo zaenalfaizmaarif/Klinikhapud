@@ -10,13 +10,14 @@ import {
   AlertCircle,
   UserPlus,
   LogIn,
+  ArrowLeft,
 } from 'lucide-react';
 import { PatientUser, PatientAccount } from '../../types';
 import { PatientForgotPasswordModal } from '../modals/PatientForgotPasswordModal';
 
 interface PatientLoginViewProps {
   onLoginSuccess: (user: PatientUser) => void;
-  onBackToLanding?: () => void;
+  onGoToRegister?: () => void;
   patientAccounts: PatientAccount[];
   onRegisterNewAccount: (account: PatientAccount) => void;
   onUpdatePatientAccountPassword?: (accountId: string, newPassword: string) => void;
@@ -24,6 +25,7 @@ interface PatientLoginViewProps {
 
 export const PatientLoginView: React.FC<PatientLoginViewProps> = ({
   onLoginSuccess,
+  onGoToRegister,
   patientAccounts,
   onRegisterNewAccount,
   onUpdatePatientAccountPassword,
@@ -489,6 +491,18 @@ export const PatientLoginView: React.FC<PatientLoginViewProps> = ({
               <span>Daftar Akun & Langsung Masuk</span>
             </button>
           </form>
+        )}
+        {onGoToRegister && (
+          <div className="border-t border-slate-100 pt-4 text-center">
+            <button
+              type="button"
+              onClick={onGoToRegister}
+              className="text-xs font-bold text-teal-700 hover:text-teal-900 inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Daftar Berobat Langsung (Tanpa Login)</span>
+            </button>
+          </div>
         )}
       </div>
 

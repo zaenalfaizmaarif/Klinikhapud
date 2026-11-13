@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, User, Eye, EyeOff, ArrowLeft, KeyRound, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Lock, User, Eye, EyeOff, KeyRound, AlertCircle } from 'lucide-react';
 import { AdminCredentials } from '../../types';
 import { AdminForgotPasswordModal } from '../modals/AdminForgotPasswordModal';
 
 interface AdminLoginViewProps {
   onLoginSuccess: () => void;
-  onBackToLanding: () => void;
   adminCredentials?: AdminCredentials;
   onUpdateAdminCredentials?: (newCreds: AdminCredentials) => void;
 }
 
 export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   onLoginSuccess,
-  onBackToLanding,
   adminCredentials,
   onUpdateAdminCredentials,
 }) => {
@@ -148,16 +146,11 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
           </button>
         </form>
 
-        {/* Back Link */}
+        {/* Dedicated Admin Notice */}
         <div className="border-t border-slate-100 pt-4 text-center">
-          <button
-            type="button"
-            onClick={onBackToLanding}
-            className="text-xs font-bold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1.5 transition cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Kembali ke Halaman Utama</span>
-          </button>
+          <p className="text-[11px] font-semibold text-slate-400">
+            Halaman Khusus Petugas & Dokter • Klinik H.APUD
+          </p>
         </div>
       </div>
 

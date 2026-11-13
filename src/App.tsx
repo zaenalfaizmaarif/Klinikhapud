@@ -22,7 +22,6 @@ import {
 } from './data/constants';
 import { computeAutoClinicStatus } from './utils/schedule';
 import { Header } from './components/Header';
-import { LandingView } from './components/LandingView';
 import { PatientView } from './components/PatientView';
 import { AdminView } from './components/AdminView';
 import { AdminLoginView } from './components/auth/AdminLoginView';
@@ -62,9 +61,34 @@ const PATIENT_USER_KEY = 'klinikX_patient_user_v2';
 const PATIENT_ACCOUNTS_KEY = 'klinikX_patient_accounts_v2';
 const CLINIC_ROOMS_KEY = 'klinikX_rooms_v2';
 
+const getPortalFromLocation = (): PortalType => {
+  if (typeof window === 'undefined') return 'patient';
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  const params = new URLSearchParams(window.location.search);
+  const roleParam = (params.get('akses') || params.get('role') || params.get('portal') || '').toLowerCase();
+
+  if (
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    hash === '#/admin' ||
+    hash === '#admin' ||
+    roleParam === 'admin'
+  ) {
+    return 'admin';
+  }
+  return 'patient';
+};
+
 export default function App() {
-  const [activePortal, setActivePortal] = useState<PortalType>('landing');
-  const [activePatientTab, setActivePatientTab] = useState<PatientTab>('register');
+  const [activePortal, setActivePortal] = useState<PortalType>(getPortalFromLocation);
+  const [activePatientTab, setActivePatientTab] = useState<PatientTab>(() => {
+    try {
+      return localStorage.getItem(PATIENT_USER_KEY) ? 'my-account' : 'register';
+    } catch {
+      return 'register';
+    }
+  });
 
   // Patients state
   const [patients, setPatients] = useState<Patient[]>(() => {
@@ -184,6 +208,27 @@ export default function App() {
   const [isChangeAdminPasswordOpen, setIsChangeAdminPasswordOpen] = useState(false);
   const [isAdminForgotPasswordOpen, setIsAdminForgotPasswordOpen] = useState(false);
   const [isChangePatientPasswordOpen, setIsChangePatientPasswordOpen] = useState(false);
+
+  // Sync activePortal with browser URL navigation (/ vs /admin)
+  useEffect(() => {
+    const syncPortalFromUrl = () => {
+      setActivePortal(getPortalFromLocation());
+    };
+    window.addEventListener('popstate', syncPortalFromUrl);
+    window.addEventListener('hashchange', syncPortalFromUrl);
+    return () => {
+      window.removeEventListener('popstate', syncPortalFromUrl);
+      window.removeEventListener('hashchange', syncPortalFromUrl);
+    };
+  }, []);
+
+  // Update browser tab title for each dedicated view
+  useEffect(() => {
+    document.title =
+      activePortal === 'admin'
+        ? 'Akses Admin & Petugas — Klinik H.APUD'
+        : 'Pendaftaran Pasien Online — Klinik H.APUD';
+  }, [activePortal]);
 
   // Synchronize across browser tabs
   useEffect(() => {
@@ -769,7 +814,7 @@ export default function App() {
   const handleAdminLogout = () => {
     setIsAdminLoggedIn(false);
     localStorage.removeItem(ADMIN_AUTH_KEY);
-    setActivePortal('landing');
+    setActivePortal('admin');
     showToast('Keluar', 'Anda telah keluar dari sesi Admin.', 'info');
   };
 
@@ -793,6 +838,7 @@ export default function App() {
   };
 
   const handleHeaderStatusClick = () => {
+    if (activePortal !== 'admin') return;
     if (isAdminLoggedIn) {
       setIsClinicStatusModalOpen(true);
     } else {
@@ -816,12 +862,8 @@ export default function App() {
     setIsMedicalNoteModalOpen(true);
   };
 
-  const handleSearchTicketFromLanding = (query: string) => {
-    setCheckTicketQuery(query);
-    setIsCheckTicketModalOpen(true);
-  };
-
   const waitingCount = patients.filter((p) => p.status === 'Menunggu').length;
+  const isStrictAdminSession = activePortal === 'admin' && isAdminLoggedIn;
 
   return (
     <div className="min-h-full flex flex-col bg-slate-50 text-slate-800">
@@ -840,34 +882,18 @@ export default function App() {
         clinicStatus={clinicStatus}
         onStatusBadgeClick={handleHeaderStatusClick}
         patientUser={patientUser}
-        isAdminLoggedIn={isAdminLoggedIn}
+        isAdminLoggedIn={isStrictAdminSession}
         onLogoutAdmin={handleAdminLogout}
         onLogoutPatient={handlePatientLogout}
       />
 
-      {/* Main View Area */}
+      {/* Main View Area (Strictly 2 Views: Patient Link vs Admin Link) */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
-        {activePortal === 'landing' && (
-          <LandingView
-            onSelectPatientPortal={() => {
-              setActivePortal('patient');
-              setActivePatientTab('my-account');
-            }}
-            onRequestAdminAccess={() => {
-              setActivePortal('admin');
-            }}
-            onSearchTicket={handleSearchTicketFromLanding}
-            patients={patients}
-            clinicStatus={clinicStatus}
-            patientUser={patientUser}
-          />
-        )}
-
         {activePortal === 'patient' && (
-          !patientUser ? (
+          !patientUser && activePatientTab === 'my-account' ? (
             <PatientLoginView
               onLoginSuccess={handlePatientLoginSuccess}
-              onBackToLanding={() => setActivePortal('landing')}
+              onGoToRegister={() => setActivePatientTab('register')}
               patientAccounts={patientAccounts}
               onRegisterNewAccount={handleRegisterNewAccount}
               onUpdatePatientAccountPassword={handleUpdatePatientAccountPassword}
@@ -896,7 +922,6 @@ export default function App() {
           !isAdminLoggedIn ? (
             <AdminLoginView
               onLoginSuccess={handleAdminLoginSuccess}
-              onBackToLanding={() => setActivePortal('landing')}
               adminCredentials={adminCredentials}
               onUpdateAdminCredentials={handleUpdateAdminCredentials}
             />
@@ -993,8 +1018,8 @@ export default function App() {
         patients={patients}
         onSelectTicket={handleOpenTicket}
         initialQuery={checkTicketQuery}
-        isAdminLoggedIn={isAdminLoggedIn}
-        patientUser={patientUser}
+        isAdminLoggedIn={isStrictAdminSession}
+        patientUser={activePortal === 'patient' ? patientUser : null}
       />
 
       <PrintableReport

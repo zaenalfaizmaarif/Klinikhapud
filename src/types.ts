@@ -62,7 +62,7 @@ export interface Patient {
   createdAt: string;
 }
 
-export type PortalType = 'landing' | 'patient' | 'admin';
+export type PortalType = 'patient' | 'admin';
 export type PatientTab = 'my-account' | 'register' | 'monitor' | 'info';
 
 export interface ClinicStatus {

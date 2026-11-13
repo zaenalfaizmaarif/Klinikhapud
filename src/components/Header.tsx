@@ -58,8 +58,6 @@ export const Header: React.FC<HeaderProps> = ({
   const handleLogoClick = () => {
     if (activePortal === 'patient') {
       setActivePatientTab('register');
-    } else {
-      setActivePortal('landing');
     }
   };
 
@@ -72,20 +70,34 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-3 cursor-pointer group"
             onClick={handleLogoClick}
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-600/25 group-hover:bg-teal-700 transition">
-              <Cross className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-white shadow-md transition ${
+                activePortal === 'admin'
+                  ? 'bg-slate-900 shadow-slate-900/25 group-hover:bg-slate-800'
+                  : 'bg-teal-600 shadow-teal-600/25 group-hover:bg-teal-700'
+              }`}
+            >
+              <Cross className={`w-5 h-5 sm:w-6 sm:h-6 ${activePortal === 'admin' ? 'text-amber-400' : 'text-white'}`} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
                   KLINIK H.APUD
                 </span>
-                <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
-                  Pelayanan Kesehatan
-                </span>
+                {activePortal === 'admin' ? (
+                  <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                    Panel Admin & Petugas
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                    Layanan Pasien
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 font-medium hidden xs:block">
-                Sistem Pendaftaran & Manajemen Sesi Waktu
+                {activePortal === 'admin'
+                  ? 'Akses Khusus Petugas Medis & Dokter'
+                  : 'Sistem Pendaftaran Online & Antrean Sesi'}
               </p>
             </div>
           </div>
@@ -93,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right Navigation Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Live Clinic Open/Closed Indicator */}
-            {activePortal === 'admin' ? (
+            {activePortal === 'admin' && isAdminLoggedIn ? (
               <button
                 type="button"
                 onClick={onStatusBadgeClick}
@@ -156,18 +168,24 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Quick Check Ticket Button */}
-            <button
-              onClick={onOpenCheckTicket}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
-              title={isAdminLoggedIn ? "Cek Seluruh Tiket Pasien (Panel Petugas)" : "Cek & Lacak Tiket Antrean Saya (Pribadi)"}
-            >
-              <Search className="w-4 h-4 text-teal-600" />
-              <span className="hidden md:inline">
-                {isAdminLoggedIn ? "Cek Seluruh Tiket" : "Cek Tiket Saya"}
-              </span>
-            </button>
+            {(activePortal === 'patient' || (activePortal === 'admin' && isAdminLoggedIn)) && (
+              <button
+                onClick={onOpenCheckTicket}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
+                title={
+                  activePortal === 'admin' && isAdminLoggedIn
+                    ? 'Cek Seluruh Tiket Pasien (Panel Petugas)'
+                    : 'Cek & Lacak Tiket Antrean Saya (Pribadi)'
+                }
+              >
+                <Search className="w-4 h-4 text-teal-600" />
+                <span className="hidden md:inline">
+                  {activePortal === 'admin' && isAdminLoggedIn ? 'Cek Seluruh Tiket' : 'Cek Tiket Saya'}
+                </span>
+              </button>
+            )}
 
-            {/* Patient Logged In Profile & Logout (No Portal Switcher) */}
+            {/* Patient Logged In Profile & Logout */}
             {activePortal === 'patient' && patientUser && (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
@@ -193,8 +211,8 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            {/* Admin Portal Logout Button (Only for Admin) */}
-            {activePortal === 'admin' && (
+            {/* Admin Logout Button (Only when logged in on Admin link) */}
+            {activePortal === 'admin' && isAdminLoggedIn && (
               <button
                 onClick={onLogoutAdmin}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-rose-900 text-white font-semibold text-xs sm:text-sm transition shadow-xs cursor-pointer"

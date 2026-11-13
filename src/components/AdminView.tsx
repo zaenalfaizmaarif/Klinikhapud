@@ -21,6 +21,8 @@ import {
   KeyRound,
   Building2,
   Stethoscope,
+  Link2,
+  Copy,
 } from 'lucide-react';
 import { Patient, PatientStatus, SessionName, ClinicStatus, ExaminationRoom } from '../types';
 import { formatDateIndo, calculateAge, exportToCSV } from '../utils/helpers';
@@ -73,6 +75,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   // Room modal state
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<'patient' | 'admin' | null>(null);
+
+  const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const patientLink = `${originUrl}/`;
+  const adminLink = `${originUrl}/admin`;
+
+  const handleCopyLink = (type: 'patient' | 'admin') => {
+    const url = type === 'patient' ? patientLink : adminLink;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedLink(type);
+        setTimeout(() => setCopiedLink(null), 2000);
+      }).catch(() => {});
+    }
+  };
 
   // Filters state
   const [filterSession, setFilterSession] = useState<string>('ALL');
@@ -230,6 +247,55 @@ export const AdminView: React.FC<AdminViewProps> = ({
           >
             <LogOut className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Dedicated 2-Link Sharing Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-teal-50 text-teal-700 border border-teal-200 shrink-0">
+            <Link2 className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs font-extrabold text-slate-900">
+              2 Tampilan Link Terpisah (Pasien & Admin)
+            </p>
+            <p className="text-[11px] text-slate-500">
+              Bagikan link pasien ke pengunjung/WhatsApp. Simpan link admin khusus untuk petugas klinik.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 text-xs">
+          <div className="flex items-center gap-2 bg-teal-50/70 border border-teal-200 rounded-xl px-3 py-1.5">
+            <span className="font-bold text-teal-800 shrink-0">Link Pasien:</span>
+            <code className="text-[11px] text-teal-950 font-mono truncate max-w-[180px] sm:max-w-[220px]">
+              {patientLink}
+            </code>
+            <button
+              type="button"
+              onClick={() => handleCopyLink('patient')}
+              className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0"
+            >
+              {copiedLink === 'patient' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedLink === 'patient' ? 'Tersalin' : 'Salin'}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-amber-50/70 border border-amber-200 rounded-xl px-3 py-1.5">
+            <span className="font-bold text-amber-900 shrink-0">Link Admin:</span>
+            <code className="text-[11px] text-amber-950 font-mono truncate max-w-[180px] sm:max-w-[220px]">
+              {adminLink}
+            </code>
+            <button
+              type="button"
+              onClick={() => handleCopyLink('admin')}
+              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0"
+            >
+              {copiedLink === 'admin' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedLink === 'admin' ? 'Tersalin' : 'Salin'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
