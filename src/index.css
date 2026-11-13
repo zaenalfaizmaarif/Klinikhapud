@@ -14,6 +14,10 @@
   --color-brand-900: #134e4a;
 }
 
+#print-mount {
+  display: none;
+}
+
 @media print {
   .no-print {
     display: none !important;
@@ -21,9 +25,23 @@
   .print-only {
     display: block !important;
   }
+  html,
   body {
     background: white !important;
     color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body.is-printing-document > *:not(#print-mount) {
+    display: none !important;
+  }
+  body.is-printing-document #print-mount {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
   .print-container {
     border: none !important;
@@ -31,6 +49,8 @@
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
 

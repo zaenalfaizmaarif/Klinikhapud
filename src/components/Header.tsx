@@ -116,8 +116,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Navigation Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Live Clinic Open/Closed Indicator */}
-            {activePortal === 'admin' && isAdminLoggedIn ? (
+            {/* Live Clinic Open/Closed Indicator (Only Petugas Admin can toggle, Doctor sees read-only) */}
+            {activePortal === 'admin' && isAdminLoggedIn && staffRole !== 'dokter' ? (
               <button
                 type="button"
                 onClick={onStatusBadgeClick}
@@ -186,13 +186,19 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
                 title={
                   activePortal === 'admin' && isAdminLoggedIn
-                    ? 'Cek Seluruh Tiket Pasien (Panel Petugas)'
+                    ? staffRole === 'dokter' && loggedInDoctor
+                      ? `Cek Tiket Pasien (${loggedInDoctor.name})`
+                      : 'Cek Seluruh Tiket Pasien (Panel Petugas)'
                     : 'Cek & Lacak Tiket Antrean Saya (Pribadi)'
                 }
               >
                 <Search className="w-4 h-4 text-teal-600" />
                 <span className="hidden md:inline">
-                  {activePortal === 'admin' && isAdminLoggedIn ? 'Cek Seluruh Tiket' : 'Cek Tiket Saya'}
+                  {activePortal === 'admin' && isAdminLoggedIn
+                    ? staffRole === 'dokter'
+                      ? 'Cek Tiket Pasien Saya'
+                      : 'Cek Seluruh Tiket'
+                    : 'Cek Tiket Saya'}
                 </span>
               </button>
             )}

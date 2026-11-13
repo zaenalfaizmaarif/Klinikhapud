@@ -14,9 +14,16 @@ import {
   Stethoscope,
   Pill,
   RotateCcw,
+  Download,
+  Receipt,
 } from 'lucide-react';
 import { Patient } from '../../types';
 import { formatDateIndo, calculateAge, generateWhatsAppLink } from '../../utils/helpers';
+import {
+  printTicketDocument,
+  printPrescriptionDocument,
+  downloadTicketImage,
+} from '../../utils/ticketPrinter';
 
 interface TicketModalProps {
   patient: Patient | null;
@@ -35,13 +42,31 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 }) => {
   if (!isOpen || !patient) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintStandard = () => {
+    printTicketDocument(patient, {
+      format: 'standard',
+      includeMedicalRecord: canViewMedicalRecord,
+    });
   };
 
-  const handleSendWA = () => {
-    const url = generateWhatsAppLink(patient);
-    window.open(url, '_blank');
+  const handlePrintThermal = () => {
+    printTicketDocument(patient, {
+      format: 'thermal',
+      includeMedicalRecord: canViewMedicalRecord,
+    });
+  };
+
+  const handleDownloadPng = () => {
+    downloadTicketImage(patient, canViewMedicalRecord);
+  };
+
+  const canPrintPrescription =
+    canViewMedicalRecord &&
+    patient.status === 'Selesai' &&
+    Boolean(patient.diagnosis || patient.prescription);
+
+  const handlePrintPrescription = () => {
+    printPrescriptionDocument(patient);
   };
 
   return (
@@ -272,22 +297,55 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
         {/* Modal Action Buttons */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 no-print shrink-0">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={handleSendWA}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Kirim ke WhatsApp</span>
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
+              type="button"
+              onClick={handlePrintStandard}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold py-3 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak Tiket</span>
+              <span>Cetak Tiket (A5/PDF)</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintThermal}
+              className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-extrabold py-3 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
+            >
+              <Receipt className="w-4 h-4" />
+              <span>Cetak Struk (80mm)</span>
             </button>
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPng}
+              className="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-extrabold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-teal-600" />
+              <span>Unduh Tiket (PNG)</span>
+            </button>
+            <a
+              href={generateWhatsAppLink(patient)}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Kirim WhatsApp</span>
+            </a>
+          </div>
+
+          {canPrintPrescription && (
+            <button
+              type="button"
+              onClick={handlePrintPrescription}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
+            >
+              <Pill className="w-4 h-4" />
+              <span>Cetak Resep Dokter</span>
+            </button>
+          )}
 
           {onRecheckWithCode && (
             <button

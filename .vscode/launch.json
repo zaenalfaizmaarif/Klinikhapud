@@ -2,10 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Jalankan Klinik H.APUD (Otomatis)",
+      "name": "Jalankan Klinik H.APUD (Port 3000)",
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run dev"
+    },
+    {
+      "name": "Jalankan & Buka Browser Otomatis",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run buka"
     }
   ]
 }

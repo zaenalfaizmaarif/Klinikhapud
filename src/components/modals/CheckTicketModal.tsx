@@ -14,8 +14,8 @@ import {
   AlertCircle,
   Filter,
 } from 'lucide-react';
-import { Patient, PatientStatus, PatientUser } from '../../types';
-import { formatDateIndo, calculateAge } from '../../utils/helpers';
+import { Patient, PatientUser, StaffRole, DoctorAccount } from '../../types';
+import { formatDateIndo, calculateAge, isPatientAssignedToDoctor } from '../../utils/helpers';
 
 interface CheckTicketModalProps {
   isOpen: boolean;
@@ -25,6 +25,8 @@ interface CheckTicketModalProps {
   initialQuery?: string;
   onRecheckWithCode?: (code: string) => void;
   isAdminLoggedIn?: boolean;
+  staffRole?: StaffRole | null;
+  loggedInDoctor?: DoctorAccount | null;
   patientUser?: PatientUser | null;
 }
 
@@ -36,6 +38,8 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
   initialQuery = '',
   onRecheckWithCode,
   isAdminLoggedIn = false,
+  staffRole = null,
+  loggedInDoctor = null,
   patientUser = null,
 }) => {
   // Admin search state
@@ -62,9 +66,15 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
 
   if (!isOpen) return null;
 
-  // --- LOGIC FOR ADMIN MODE ---
+  // --- LOGIC FOR ADMIN / DOCTOR MODE ---
+  const isDoctorMode = isAdminLoggedIn && staffRole === 'dokter' && Boolean(loggedInDoctor);
+  const scopedAdminPatients =
+    isDoctorMode && loggedInDoctor
+      ? patients.filter((p) => isPatientAssignedToDoctor(p, loggedInDoctor))
+      : patients;
+
   const trimmedAdminQuery = adminQuery.trim().toLowerCase();
-  const adminFilteredPatients = patients.filter((p) => {
+  const adminFilteredPatients = scopedAdminPatients.filter((p) => {
     if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
     if (!trimmedAdminQuery) return true;
     return (
@@ -73,14 +83,15 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
       p.name.toLowerCase().includes(trimmedAdminQuery) ||
       (p.noRM || '').toLowerCase().includes(trimmedAdminQuery) ||
       (p.assignedRoom || '').toLowerCase().includes(trimmedAdminQuery) ||
+      (p.examinedPoly || '').toLowerCase().includes(trimmedAdminQuery) ||
       p.service.toLowerCase().includes(trimmedAdminQuery) ||
       p.complaint.toLowerCase().includes(trimmedAdminQuery)
     );
   });
 
-  const waitingCount = patients.filter((p) => p.status === 'Menunggu').length;
-  const callingCount = patients.filter((p) => p.status === 'Dipanggil').length;
-  const doneCount = patients.filter((p) => p.status === 'Selesai').length;
+  const waitingCount = scopedAdminPatients.filter((p) => p.status === 'Menunggu').length;
+  const callingCount = scopedAdminPatients.filter((p) => p.status === 'Dipanggil').length;
+  const doneCount = scopedAdminPatients.filter((p) => p.status === 'Selesai').length;
 
   // --- LOGIC FOR PATIENT PRIVATE MODE ---
   // If user is already logged in as patient, find their own registered tickets
@@ -177,11 +188,15 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-slate-900 text-lg">
-                  {isAdminLoggedIn ? 'Cek Tiket Pasien (Petugas)' : 'Cek Tiket Saya'}
+                  {isAdminLoggedIn
+                    ? isDoctorMode && loggedInDoctor
+                      ? `Cek Tiket Pasien (${loggedInDoctor.name})`
+                      : 'Cek Tiket Pasien (Petugas)'
+                    : 'Cek Tiket Saya'}
                 </h3>
                 {isAdminLoggedIn ? (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">
-                    {patients.length} Tiket Terdaftar
+                    {scopedAdminPatients.length} Tiket {isDoctorMode ? 'Dokter' : 'Terdaftar'}
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
@@ -192,7 +207,9 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 {isAdminLoggedIn
-                  ? 'Panel rekapitulasi seluruh antrean klinik • Pencarian dan status pasien'
+                  ? isDoctorMode && loggedInDoctor
+                    ? `Menampilkan khusus tiket pasien untuk ${loggedInDoctor.name} (${loggedInDoctor.assignedPolies.join(', ')})`
+                    : 'Panel rekapitulasi seluruh antrean klinik • Pencarian dan status pasien'
                   : 'Data antrean bersifat rahasia • Hanya Anda yang dapat melihat tiket milik sendiri'}
               </p>
             </div>
@@ -244,7 +261,7 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  Semua ({patients.length})
+                  Semua ({scopedAdminPatients.length})
                 </button>
                 <button
                   type="button"
@@ -561,7 +578,7 @@ export const CheckTicketModal: React.FC<CheckTicketModalProps> = ({
         <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
           <span className="text-slate-400 text-[11px]">
             {isAdminLoggedIn
-              ? `Menampilkan ${adminFilteredPatients.length} dari ${patients.length} tiket pasien klinik`
+              ? `Menampilkan ${adminFilteredPatients.length} dari ${scopedAdminPatients.length} tiket pasien${isDoctorMode ? ' sesuai dokter' : ' klinik'}`
               : 'Privasi Pasien Dijamin • Klinik H.APUD'}
           </span>
           <button

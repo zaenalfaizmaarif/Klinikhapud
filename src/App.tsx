@@ -40,8 +40,14 @@ import { ChangeAdminPasswordModal } from './components/modals/ChangeAdminPasswor
 import { ChangeDoctorPasswordModal } from './components/modals/ChangeDoctorPasswordModal';
 import { AdminForgotPasswordModal } from './components/modals/AdminForgotPasswordModal';
 import { ChangePatientPasswordModal } from './components/modals/ChangePatientPasswordModal';
+import { PrintPreviewModal } from './components/modals/PrintPreviewModal';
 import { PrintableReport } from './components/PrintableReport';
 import { speakCallout } from './utils/audio';
+import {
+  registerPrintPreviewHandler,
+  PrintPreviewPayload,
+  TicketPrintFormat,
+} from './utils/ticketPrinter';
 import {
   testConnection,
   subscribePatients,
@@ -243,6 +249,16 @@ export default function App() {
   const [isChangeDoctorPasswordOpen, setIsChangeDoctorPasswordOpen] = useState(false);
   const [isAdminForgotPasswordOpen, setIsAdminForgotPasswordOpen] = useState(false);
   const [isChangePatientPasswordOpen, setIsChangePatientPasswordOpen] = useState(false);
+  const [printPreviewPayload, setPrintPreviewPayload] = useState<PrintPreviewPayload | null>(null);
+
+  useEffect(() => {
+    registerPrintPreviewHandler((payload) => {
+      setPrintPreviewPayload(payload);
+    });
+    return () => {
+      registerPrintPreviewHandler(null);
+    };
+  }, []);
 
   // Sync activePortal with browser URL navigation (/ vs /admin)
   useEffect(() => {
@@ -977,7 +993,7 @@ export default function App() {
   };
 
   const handleHeaderStatusClick = () => {
-    if (activePortal !== 'admin') return;
+    if (activePortal !== 'admin' || staffRole === 'dokter') return;
     if (isAdminLoggedIn) {
       setIsClinicStatusModalOpen(true);
     } else {
@@ -1183,6 +1199,8 @@ export default function App() {
         onSelectTicket={handleOpenTicket}
         initialQuery={checkTicketQuery}
         isAdminLoggedIn={isStrictAdminSession}
+        staffRole={isStrictAdminSession ? staffRole : null}
+        loggedInDoctor={isStrictDoctorSession ? loggedInDoctor : null}
         patientUser={activePortal === 'patient' ? patientUser : null}
       />
 
@@ -1234,6 +1252,20 @@ export default function App() {
           onUpdatePatientPassword={handleUpdatePatientPassword}
         />
       )}
+
+      <PrintPreviewModal
+        isOpen={Boolean(printPreviewPayload)}
+        onClose={() => setPrintPreviewPayload(null)}
+        mode={printPreviewPayload?.mode || 'ticket'}
+        patient={printPreviewPayload?.patient || null}
+        format={printPreviewPayload?.format || 'standard'}
+        includeMedicalRecord={Boolean(printPreviewPayload?.includeMedicalRecord)}
+        onChangeFormat={(newFormat: TicketPrintFormat) =>
+          setPrintPreviewPayload((prev) =>
+            prev ? { ...prev, format: newFormat } : prev
+          )
+        }
+      />
 
       {/* Global Toast */}
       <Toast toast={toast} onClose={() => setToast(null)} />

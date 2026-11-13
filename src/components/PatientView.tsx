@@ -31,6 +31,8 @@ import {
   HeartPulse,
   Stethoscope,
   Pill,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { Patient, PatientTab, ServiceType, SessionName, ClinicStatus, PatientUser, ExaminationRoom } from '../types';
 import {
@@ -42,6 +44,12 @@ import {
   DEFAULT_CLINIC_ROOMS,
 } from '../data/constants';
 import { formatDateIndo, calculateAge, findPatientByQueueOrPhone, generateWhatsAppLink } from '../utils/helpers';
+import {
+  printTicketDocument,
+  printPrescriptionDocument,
+  downloadTicketImage,
+  downloadPrescriptionImage,
+} from '../utils/ticketPrinter';
 
 interface PatientViewProps {
   activeTab: PatientTab;
@@ -447,16 +455,40 @@ export const PatientView: React.FC<PatientViewProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-2.5 w-full md:w-auto shrink-0">
-                  {onOpenTicket && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      printTicketDocument(activeTicket, {
+                        format: 'standard',
+                        includeMedicalRecord: true,
+                      })
+                    }
+                    className="w-full px-5 py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak Tiket Sekarang</span>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {onOpenTicket && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenTicket(activeTicket)}
+                        className="px-3.5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-extrabold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Ticket className="w-3.5 h-3.5 text-teal-600" />
+                        <span>Detail Tiket</span>
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => onOpenTicket(activeTicket)}
-                      className="w-full px-5 py-3.5 bg-white hover:bg-slate-100 text-slate-900 font-black rounded-2xl text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                      onClick={() => downloadTicketImage(activeTicket, true)}
+                      className="px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Ticket className="w-4 h-4 text-teal-600" />
-                      <span>Buka Tiket Digital Lengkap</span>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Simpan PNG</span>
                     </button>
-                  )}
+                  </div>
 
                   <a
                     href={generateWhatsAppLink(activeTicket)}
@@ -530,10 +562,28 @@ export const PatientView: React.FC<PatientViewProps> = ({
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Rahasia: Hanya Anda & Dokter</span>
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => printPrescriptionDocument(activeTicket)}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Cetak Resep</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadPrescriptionImage(activeTicket)}
+                      className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Simpan Resep (PNG)</span>
+                    </button>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Rahasia: Hanya Anda & Dokter</span>
+                    </span>
+                  </div>
                 </div>
 
                 {activeTicket.vitalSigns &&
@@ -679,7 +729,30 @@ export const PatientView: React.FC<PatientViewProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          printTicketDocument(t, {
+                            format: 'standard',
+                            includeMedicalRecord: true,
+                          })
+                        }
+                        className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Cetak Tiket</span>
+                      </button>
+                      {t.status === 'Selesai' && (t.diagnosis || t.prescription) && (
+                        <button
+                          type="button"
+                          onClick={() => printPrescriptionDocument(t)}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Pill className="w-3.5 h-3.5" />
+                          <span>Cetak Resep</span>
+                        </button>
+                      )}
                       {onOpenTicket && (
                         <button
                           type="button"

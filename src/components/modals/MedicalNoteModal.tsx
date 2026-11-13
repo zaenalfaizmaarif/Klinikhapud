@@ -14,6 +14,7 @@ import {
 import { Patient, VitalSigns, DoctorAccount, ExaminationRoom } from '../../types';
 import { calculateAge } from '../../utils/helpers';
 import { DEFAULT_CLINIC_ROOMS, getDefaultRoomForPatient } from '../../data/constants';
+import { printPrescriptionDocument } from '../../utils/ticketPrinter';
 
 interface MedicalNoteModalProps {
   patient: Patient | null;
@@ -94,7 +95,23 @@ export const MedicalNoteModal: React.FC<MedicalNoteModalProps> = ({
   };
 
   const handlePrintPrescription = () => {
-    window.print();
+    const draftPatient: Patient = {
+      ...patient,
+      diagnosis: diagnosis.trim(),
+      prescription: prescription.trim(),
+      vitalSigns: {
+        bp: bp.trim(),
+        temp: temp.trim(),
+        pulse: pulse.trim(),
+        weight: weight.trim(),
+      },
+      assignedRoom: examinedPoly || patient.assignedRoom || 'Ruang Periksa 1 (Poli Umum)',
+      examinedPoly: examinedPoly || patient.examinedPoly || patient.assignedRoom || 'Ruang Periksa 1 (Poli Umum)',
+      examinedByDoctor: examiningDoctorName,
+      doctorName: examiningDoctorName,
+      examinedAt: patient.examinedAt || new Date().toISOString(),
+    };
+    printPrescriptionDocument(draftPatient);
   };
 
   return (

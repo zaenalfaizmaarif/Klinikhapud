@@ -25,6 +25,7 @@ import {
   Copy,
   Lock,
   ShieldCheck,
+  Pill,
 } from 'lucide-react';
 import {
   Patient,
@@ -35,7 +36,8 @@ import {
   StaffRole,
   DoctorAccount,
 } from '../types';
-import { formatDateIndo, calculateAge, exportToCSV } from '../utils/helpers';
+import { formatDateIndo, calculateAge, exportToCSV, isPatientAssignedToDoctor } from '../utils/helpers';
+import { printTicketDocument, printPrescriptionDocument } from '../utils/ticketPrinter';
 import { speakCallout, playChime } from '../utils/audio';
 import { DEFAULT_CLINIC_ROOMS, getDefaultRoomForPatient } from '../data/constants';
 import { ManageRoomsModal } from './modals/ManageRoomsModal';
@@ -119,8 +121,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setFilterPoly(isDoctor ? 'MY_POLY' : 'ALL');
   }, [isDoctor, loggedInDoctor?.id]);
 
+  // Scope patients strictly to the logged-in doctor when in Doctor mode
+  const scopedPatients =
+    isDoctor && loggedInDoctor
+      ? patients.filter((p) => isPatientAssignedToDoctor(p, loggedInDoctor))
+      : patients;
+
   // Filtered list
-  const filteredPatients = patients.filter((p) => {
+  const filteredPatients = scopedPatients.filter((p) => {
     if (filterDateMode === 'today' && p.visitDate !== todayStr) return false;
     if (filterSession !== 'ALL' && p.sessionName !== filterSession) return false;
     if (filterStatus !== 'ALL' && p.status !== filterStatus) return false;
@@ -152,7 +160,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   });
 
   // Today specific counts
-  const todayPatients = patients.filter((p) => p.visitDate === todayStr);
+  const todayPatients = scopedPatients.filter((p) => p.visitDate === todayStr);
   const totalToday = todayPatients.length;
   const sesi1Count = todayPatients.filter((p) => p.sessionName === 'Sesi 1').length;
   const sesi2Count = todayPatients.filter((p) => p.sessionName === 'Sesi 2').length;
@@ -192,63 +200,68 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-          {/* Clinic Open/Closed Toggle Button */}
-          <button
-            onClick={onOpenClinicStatusModal}
-            className={`px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
-              clinicStatus.isOpen
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 ring-2 ring-rose-400 animate-pulse'
-            }`}
-            title="Klik untuk mengubah status Buka / Tutup Klinik (Tersinkron langsung ke layar pasien)"
-          >
-            <Power className="w-4 h-4" />
-            <span>{clinicStatus.isOpen ? 'Status: BUKA' : 'Status: TUTUP'}</span>
-          </button>
+          {/* Petugas Admin Only Controls (Hidden for Doctor) */}
+          {!isDoctor && (
+            <>
+              {/* Clinic Open/Closed Toggle Button */}
+              <button
+                onClick={onOpenClinicStatusModal}
+                className={`px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                  clinicStatus.isOpen
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 ring-2 ring-rose-400 animate-pulse'
+                }`}
+                title="Klik untuk mengubah status Buka / Tutup Klinik (Tersinkron langsung ke layar pasien)"
+              >
+                <Power className="w-4 h-4" />
+                <span>{clinicStatus.isOpen ? 'Status: BUKA' : 'Status: TUTUP'}</span>
+              </button>
 
-          {/* Call Next Button */}
-          <button
-            onClick={onCallNextPatient}
-            className="flex-1 sm:flex-initial px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer"
-          >
-            <Volume2 className="w-4 h-4" />
-            <span>Panggil Berikutnya</span>
-          </button>
+              {/* Call Next Button */}
+              <button
+                onClick={onCallNextPatient}
+                className="flex-1 sm:flex-initial px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>Panggil Berikutnya</span>
+              </button>
 
-          {/* Quick Register / Walk-in */}
-          <button
-            onClick={onOpenWalkInModal}
-            className="px-3.5 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Daftar Pasien Langsung di Tempat"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Walk-In</span>
-          </button>
+              {/* Quick Register / Walk-in */}
+              <button
+                onClick={onOpenWalkInModal}
+                className="px-3.5 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
+                title="Daftar Pasien Langsung di Tempat"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Walk-In</span>
+              </button>
 
-          {/* Kelola Ruangan & Poli */}
-          <button
-            onClick={() => setIsRoomModalOpen(true)}
-            className="px-3.5 py-3 bg-teal-800 hover:bg-teal-700 text-teal-100 border border-teal-600/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
-            title="Kelola Ruangan Pemeriksaan, Poli, & Dokter Jaga"
-          >
-            <Building2 className="w-4 h-4 text-teal-300" />
-            <span className="hidden sm:inline">Kelola Ruangan & Poli</span>
-            <span className="sm:hidden">Ruangan</span>
-          </button>
+              {/* Kelola Ruangan & Poli */}
+              <button
+                onClick={() => setIsRoomModalOpen(true)}
+                className="px-3.5 py-3 bg-teal-800 hover:bg-teal-700 text-teal-100 border border-teal-600/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
+                title="Kelola Ruangan Pemeriksaan, Poli, & Dokter Jaga"
+              >
+                <Building2 className="w-4 h-4 text-teal-300" />
+                <span className="hidden sm:inline">Kelola Ruangan & Poli</span>
+                <span className="sm:hidden">Ruangan</span>
+              </button>
 
-          {/* Print Report */}
-          <button
-            onClick={onOpenPrintReport}
-            className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Cetak Laporan Rekapitulasi"
-          >
-            <Printer className="w-4 h-4" />
-            <span className="hidden sm:inline">Cetak Laporan</span>
-          </button>
+              {/* Print Report */}
+              <button
+                onClick={onOpenPrintReport}
+                className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
+                title="Cetak Laporan Rekapitulasi"
+              >
+                <Printer className="w-4 h-4" />
+                <span className="hidden sm:inline">Cetak Laporan</span>
+              </button>
+            </>
+          )}
 
           {/* Export CSV */}
           <button
-            onClick={() => exportToCSV(patients, isDoctor)}
+            onClick={() => exportToCSV(scopedPatients, isDoctor)}
             className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
             title="Download CSV"
           >
@@ -256,15 +269,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <span className="hidden sm:inline">CSV</span>
           </button>
 
-          {/* Cek Seluruh Tiket Pasien */}
+          {/* Cek Tiket Pasien (Untuk Dokter hanya menampilkan tiket pasien miliknya) */}
           {onOpenCheckTicket && (
             <button
               onClick={onOpenCheckTicket}
               className="px-3.5 py-3 bg-teal-800 hover:bg-teal-700 text-teal-100 border border-teal-600/60 font-semibold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
-              title="Buka Seluruh Tiket Pasien Terdaftar"
+              title={
+                isDoctor && loggedInDoctor
+                  ? `Cek Tiket Pasien Khusus ${loggedInDoctor.name}`
+                  : 'Buka Seluruh Tiket Pasien Terdaftar'
+              }
             >
               <Ticket className="w-4 h-4 text-teal-300" />
-              <span className="hidden sm:inline">Cek Tiket Pasien</span>
+              <span className="hidden sm:inline">
+                {isDoctor ? 'Cek Tiket Pasien Saya' : 'Cek Tiket Pasien'}
+              </span>
               <span className="sm:hidden">Tiket</span>
             </button>
           )}
@@ -292,20 +311,22 @@ export const AdminView: React.FC<AdminViewProps> = ({
             )
           )}
 
-          {/* Reset Demo Data */}
-          <button
-            onClick={onResetDemoData}
-            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl text-xs transition cursor-pointer"
-            title="Reset Contoh Data Antrean"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          {/* Reset Demo Data (Admin Only) */}
+          {!isDoctor && (
+            <button
+              onClick={onResetDemoData}
+              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl text-xs transition cursor-pointer"
+              title="Reset Contoh Data Antrean"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Logout */}
           <button
             onClick={onLogout}
             className="p-3 bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-2xl text-xs transition cursor-pointer"
-            title="Keluar dari Admin"
+            title={isDoctor ? 'Keluar dari Sesi Dokter' : 'Keluar dari Admin'}
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -401,10 +422,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
               <User className="text-teal-600 w-5 h-5" />
-              Daftar Pasien Terdaftar
+              {isDoctor && loggedInDoctor
+                ? `Daftar Pasien Poli (${loggedInDoctor.name})`
+                : 'Daftar Pasien Terdaftar'}
             </h2>
             <p className="text-xs text-slate-500">
-              Menampilkan {filteredPatients.length} dari total {patients.length} data pasien
+              Menampilkan {filteredPatients.length} dari total {scopedPatients.length} data pasien
+              {isDoctor ? ' sesuai poli Anda' : ''}
             </p>
           </div>
 
@@ -429,24 +453,34 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </button>
             </div>
 
-            {/* Poly Filter (Aligned to Doctor's Poli) */}
+            {/* Poly Filter (Aligned strictly to Doctor's Poli when logged in as Doctor) */}
             <select
               value={filterPoly}
               onChange={(e) => setFilterPoly(e.target.value)}
               className="px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl text-xs font-bold text-teal-900 outline-none cursor-pointer"
               title="Filter pasien berdasarkan Poli / Ruangan pemeriksaan"
             >
-              {isDoctor && loggedInDoctor && (
-                <option value="MY_POLY">
-                  🩺 Poli Saya ({loggedInDoctor.assignedPolies.length} Ruang)
-                </option>
+              {isDoctor && loggedInDoctor ? (
+                <>
+                  <option value="MY_POLY">
+                    🩺 Semua Poli Saya ({loggedInDoctor.assignedPolies.length} Ruang)
+                  </option>
+                  {loggedInDoctor.assignedPolies.map((polyName) => (
+                    <option key={polyName} value={polyName}>
+                      {polyName}
+                    </option>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <option value="ALL">Semua Poli / Ruangan</option>
+                  {clinicRooms.map((room) => (
+                    <option key={room.id} value={room.name}>
+                      {room.name}
+                    </option>
+                  ))}
+                </>
               )}
-              <option value="ALL">Semua Poli / Ruangan</option>
-              {clinicRooms.map((room) => (
-                <option key={room.id} value={room.name}>
-                  {room.name}
-                </option>
-              ))}
             </select>
 
             {/* Session Filter */}
@@ -739,11 +773,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           {/* View Ticket */}
                           <button
                             onClick={() => onOpenTicket(p)}
-                            title="Lihat / Cetak Tiket"
+                            title="Lihat Detail Tiket"
                             className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer"
                           >
                             <Ticket className="w-4 h-4" />
                           </button>
+
+                          {/* Direct Print Ticket */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              printTicketDocument(p, {
+                                format: isDoctor ? 'standard' : 'thermal',
+                                includeMedicalRecord: isDoctor,
+                              })
+                            }
+                            title="Cetak Langsung Tiket / Struk Antrean"
+                            className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-xl transition cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+
+                          {/* Direct Print Prescription (Doctor Only when prescription/diagnosis exists) */}
+                          {isDoctor && (p.prescription || p.diagnosis) && (
+                            <button
+                              type="button"
+                              onClick={() => printPrescriptionDocument(p)}
+                              title="Cetak Resep Dokter"
+                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl transition cursor-pointer"
+                            >
+                              <Pill className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Cancel or Restore */}
                           {p.status === 'Batal' ? (
@@ -783,16 +844,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       </div>
 
-      {/* Modal Kelola Ruangan & Poli */}
-      <ManageRoomsModal
-        isOpen={isRoomModalOpen}
-        onClose={() => setIsRoomModalOpen(false)}
-        rooms={clinicRooms}
-        onSaveRooms={(updated) => {
-          if (onSaveRooms) onSaveRooms(updated);
-        }}
-        patients={patients}
-      />
+      {/* Modal Kelola Ruangan & Poli (Petugas Admin Only) */}
+      {!isDoctor && (
+        <ManageRoomsModal
+          isOpen={isRoomModalOpen}
+          onClose={() => setIsRoomModalOpen(false)}
+          rooms={clinicRooms}
+          onSaveRooms={(updated) => {
+            if (onSaveRooms) onSaveRooms(updated);
+          }}
+          patients={patients}
+        />
+      )}
     </div>
   );
 };

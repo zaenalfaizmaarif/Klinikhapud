@@ -1,5 +1,5 @@
-import { Patient, ServiceType } from '../types';
-import { SERVICE_PREFIXES } from '../data/constants';
+import { Patient, ServiceType, DoctorAccount } from '../types';
+import { SERVICE_PREFIXES, getDefaultRoomForPatient } from '../data/constants';
 
 /**
  * Generate unique daily queue code that changes every day and avoids collisions.
@@ -81,6 +81,41 @@ export function findPatientByQueueOrPhone(
   if (matchName) return matchName;
 
   return undefined;
+}
+
+/**
+ * Determine whether a patient/ticket belongs to the logged-in Doctor
+ * based on examining doctor name, assigned doctor name, or assigned polies.
+ */
+export function isPatientAssignedToDoctor(
+  patient: Patient,
+  doctor: DoctorAccount
+): boolean {
+  const docNameLower = doctor.name.trim().toLowerCase();
+  const examinedByLower = (patient.examinedByDoctor || '').trim().toLowerCase();
+  const assignedDocLower = (patient.doctorName || '').trim().toLowerCase();
+  const effectivePolyLower = (
+    patient.examinedPoly ||
+    patient.assignedRoom ||
+    getDefaultRoomForPatient(patient.service, patient.complaint)
+  )
+    .trim()
+    .toLowerCase();
+
+  if (examinedByLower && examinedByLower === docNameLower) {
+    return true;
+  }
+  if (
+    assignedDocLower &&
+    (assignedDocLower === docNameLower ||
+      assignedDocLower.includes(docNameLower) ||
+      docNameLower.includes(assignedDocLower))
+  ) {
+    return true;
+  }
+  return doctor.assignedPolies.some(
+    (poly) => poly.trim().toLowerCase() === effectivePolyLower
+  );
 }
 
 export function formatDateIndo(dateStr?: string): string {

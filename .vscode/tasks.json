@@ -5,7 +5,7 @@
       "type": "npm",
       "script": "dev",
       "problemMatcher": [],
-      "label": "npm: dev (Mulai Klinik H.APUD)",
+      "label": "npm: dev (Jalankan Klinik H.APUD)",
       "detail": "Menjalankan Vite dev server di port 3000",
       "group": {
         "kind": "build",
@@ -14,10 +14,17 @@
     },
     {
       "type": "npm",
-      "script": "server",
+      "script": "lint",
+      "problemMatcher": ["$tsc"],
+      "label": "npm: lint (Cek TypeScript)",
+      "detail": "Memeriksa error tipe TypeScript"
+    },
+    {
+      "type": "npm",
+      "script": "build",
       "problemMatcher": [],
-      "label": "npm: server (Backend Express & MySQL)",
-      "detail": "Menjalankan REST API server terhubung ke MySQL"
+      "label": "npm: build (Build Produksi)",
+      "detail": "Membuat hasil build produksi di folder dist/"
     }
   ]
 }
