@@ -15,7 +15,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Patient, ExaminationRoom, ClinicStatus, AdminCredentials, PatientAccount } from '../types';
+import { Patient, ExaminationRoom, ClinicStatus, AdminCredentials, PatientAccount, DoctorAccount } from '../types';
 
 // Initialize Firebase App
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -149,6 +149,9 @@ export async function syncPatientToFirestore(patient: Patient): Promise<void> {
       updatedAt: new Date().toISOString(),
     };
     if (patient.noRM) cleanPatient.noRM = patient.noRM;
+    if (patient.examinedByDoctor) cleanPatient.examinedByDoctor = patient.examinedByDoctor;
+    if (patient.examinedPoly) cleanPatient.examinedPoly = patient.examinedPoly;
+    if (patient.examinedAt) cleanPatient.examinedAt = patient.examinedAt;
     if (patient.diagnosis) cleanPatient.diagnosis = patient.diagnosis;
     if (patient.prescription) cleanPatient.prescription = patient.prescription;
     if (patient.vitalSigns) cleanPatient.vitalSigns = patient.vitalSigns;
@@ -311,6 +314,42 @@ export async function syncPatientAccountsToFirestore(accounts: PatientAccount[])
     await setDoc(doc(db, SETTINGS_COL, 'patientAccounts'), { accounts, updatedAt: new Date().toISOString() }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${SETTINGS_COL}/patientAccounts`);
+    throw error;
+  }
+}
+
+/**
+ * Real-time listener for Doctor Accounts
+ */
+export function subscribeDoctorAccounts(
+  onData: (accounts: DoctorAccount[]) => void,
+  onError?: (err: unknown) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, SETTINGS_COL, 'doctorAccounts'),
+    (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.accounts)) {
+          onData(data.accounts as DoctorAccount[]);
+        }
+      }
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, `${SETTINGS_COL}/doctorAccounts`);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Save doctor accounts to Firestore
+ */
+export async function syncDoctorAccountsToFirestore(accounts: DoctorAccount[]): Promise<void> {
+  try {
+    await setDoc(doc(db, SETTINGS_COL, 'doctorAccounts'), { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${SETTINGS_COL}/doctorAccounts`);
     throw error;
   }
 }

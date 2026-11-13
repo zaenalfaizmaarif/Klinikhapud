@@ -17,7 +17,6 @@ import {
   RotateCcw,
   CheckCircle,
   RefreshCw,
-  Sparkles,
   History,
   PlusCircle,
   ArrowRight,
@@ -28,6 +27,10 @@ import {
   LogOut,
   Share2,
   Building2,
+  Lock,
+  HeartPulse,
+  Stethoscope,
+  Pill,
 } from 'lucide-react';
 import { Patient, PatientTab, ServiceType, SessionName, ClinicStatus, PatientUser, ExaminationRoom } from '../types';
 import {
@@ -503,6 +506,94 @@ export const PatientView: React.FC<PatientViewProps> = ({
             </div>
           )}
 
+          {/* 2B. Hasil Rekam Medis Pribadi (Rahasia: Hanya Anda & Dokter) */}
+          {activeTicket &&
+            activeTicket.status === 'Selesai' &&
+            (activeTicket.diagnosis ||
+              activeTicket.prescription ||
+              activeTicket.vitalSigns?.bp ||
+              activeTicket.vitalSigns?.temp ||
+              activeTicket.vitalSigns?.pulse ||
+              activeTicket.vitalSigns?.weight) && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-200 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <HeartPulse className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">
+                        Hasil Rekam Medis & Resep Dokter ({activeTicket.code})
+                      </h3>
+                      <p className="text-xs text-emerald-800 font-semibold">
+                        Poli: {activeTicket.examinedPoly || activeTicket.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'} • Dokter: {activeTicket.examinedByDoctor || activeTicket.doctorName || 'Dokter Klinik'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Rahasia: Hanya Anda & Dokter</span>
+                  </span>
+                </div>
+
+                {activeTicket.vitalSigns &&
+                  (activeTicket.vitalSigns.bp ||
+                    activeTicket.vitalSigns.temp ||
+                    activeTicket.vitalSigns.pulse ||
+                    activeTicket.vitalSigns.weight) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      {activeTicket.vitalSigns.bp && (
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 font-bold block">Tekanan Darah</span>
+                          <strong className="text-slate-900 text-sm">{activeTicket.vitalSigns.bp}</strong>
+                        </div>
+                      )}
+                      {activeTicket.vitalSigns.temp && (
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 font-bold block">Suhu Tubuh</span>
+                          <strong className="text-slate-900 text-sm">{activeTicket.vitalSigns.temp}</strong>
+                        </div>
+                      )}
+                      {activeTicket.vitalSigns.pulse && (
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 font-bold block">Denyut Nadi</span>
+                          <strong className="text-slate-900 text-sm">{activeTicket.vitalSigns.pulse}</strong>
+                        </div>
+                      )}
+                      {activeTicket.vitalSigns.weight && (
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 font-bold block">Berat Badan</span>
+                          <strong className="text-slate-900 text-sm">{activeTicket.vitalSigns.weight}</strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {activeTicket.diagnosis && (
+                    <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                      <span className="text-[11px] font-black uppercase text-emerald-800 flex items-center gap-1.5">
+                        <Stethoscope className="w-3.5 h-3.5" />
+                        <span>Diagnosis Pemeriksaan</span>
+                      </span>
+                      <p className="font-extrabold text-slate-900 text-sm">{activeTicket.diagnosis}</p>
+                    </div>
+                  )}
+                  {activeTicket.prescription && (
+                    <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 space-y-1">
+                      <span className="text-[11px] font-black uppercase text-teal-800 flex items-center gap-1.5">
+                        <Pill className="w-3.5 h-3.5" />
+                        <span>Tindakan & Resep Obat</span>
+                      </span>
+                      <p className="text-slate-800 whitespace-pre-line font-semibold leading-relaxed">
+                        {activeTicket.prescription}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           {/* 3. Riwayat Seluruh Pendaftaran Pasien Tersebut */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
@@ -560,18 +651,31 @@ export const PatientView: React.FC<PatientViewProps> = ({
                       <div className="flex flex-wrap items-center gap-2 pt-0.5">
                         <span className="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                           <Building2 className="w-3 h-3 text-teal-600" />
-                          <span>Ruang: {t.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}</span>
+                          <span>Poli: {t.examinedPoly || t.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}</span>
                         </span>
-                        {t.doctorName && (
+                        {(t.examinedByDoctor || t.doctorName) && (
                           <span className="text-[11px] text-slate-600 font-semibold">
-                            👨‍⚕️ {t.doctorName}
+                            👨‍⚕️ {t.examinedByDoctor || t.doctorName}
                           </span>
                         )}
                       </div>
-                      {t.diagnosis && (
-                        <p className="text-[11px] text-teal-900 bg-teal-50/80 px-2 py-1 rounded-md mt-1">
-                          <strong>Diagnosis:</strong> {t.diagnosis}
-                        </p>
+                      {t.status === 'Selesai' && (t.diagnosis || t.prescription) && (
+                        <div className="mt-2 p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-1 text-[11px]">
+                          <div className="flex items-center gap-1 font-black text-emerald-900">
+                            <Lock className="w-3 h-3 text-emerald-700" />
+                            <span>Hasil Rekam Medis Pribadi (Hanya Anda & Dokter)</span>
+                          </div>
+                          {t.diagnosis && (
+                            <p className="text-slate-800">
+                              <strong>Diagnosis:</strong> {t.diagnosis}
+                            </p>
+                          )}
+                          {t.prescription && (
+                            <p className="text-slate-700 whitespace-pre-line">
+                              <strong>Resep & Tindakan:</strong> {t.prescription}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -602,33 +706,6 @@ export const PatientView: React.FC<PatientViewProps> = ({
           {/* Main Registration Form */}
           <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
             <div className="border-b border-slate-100 pb-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                  <span>PENDAFTARAN PASIEN (LANGSUNG TANPA LOGIN)</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {!patientUser && onNavigateTab && (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateTab('my-account')}
-                      className="text-xs font-bold text-slate-700 hover:text-teal-900 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                    >
-                      <User className="w-3.5 h-3.5 text-teal-600" />
-                      <span>Masuk Akun Pasien</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={onOpenCheckTicket}
-                    className="text-xs font-bold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-1 rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Search className="w-3.5 h-3.5" />
-                    <span>Cek Status / Cari Tiket Saya</span>
-                  </button>
-                </div>
-              </div>
-
               <div>
                 <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2">
                   <FileText className="text-teal-600 w-6 h-6" />
@@ -785,13 +862,12 @@ export const PatientView: React.FC<PatientViewProps> = ({
                         </div>
                       </div>
 
-                      {matchedPreviousPatient.diagnosis && (
-                        <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg">
-                          <span className="font-bold text-slate-700 block">Riwayat Medis Kunjungan Sebelumnya:</span>
-                          <p className="mt-0.5">
-                            <strong>Diagnosis:</strong> {matchedPreviousPatient.diagnosis}
-                            {matchedPreviousPatient.prescription && ` • Resep: ${matchedPreviousPatient.prescription}`}
-                          </p>
+                      {(matchedPreviousPatient.diagnosis || matchedPreviousPatient.prescription) && (
+                        <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-lg flex items-center gap-2">
+                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span>
+                            <strong>Rekam Medis Tersimpan:</strong> Demi privasi medis, hasil diagnosis & resep hanya dapat dibuka setelah masuk ke <strong>Akun & Tiket Saya</strong>.
+                          </span>
                         </div>
                       )}
                     </div>

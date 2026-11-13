@@ -68,6 +68,20 @@
           "description": "Ruangan pemeriksaan yang ditugaskan",
           "maxLength": 120
         },
+        "examinedByDoctor": {
+          "type": "string",
+          "description": "Nama dokter pemeriksa yang mencatat rekam medis",
+          "maxLength": 120
+        },
+        "examinedPoly": {
+          "type": "string",
+          "description": "Poli atau ruang tempat pasien diperiksa",
+          "maxLength": 120
+        },
+        "examinedAt": {
+          "type": "string",
+          "description": "Waktu pencatatan hasil rekam medis"
+        },
         "doctorNotes": {
           "type": "string",
           "description": "Catatan rekam medis singkat dokter",

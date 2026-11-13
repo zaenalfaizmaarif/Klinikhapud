@@ -7,12 +7,14 @@ interface PrintableReportProps {
   isOpen: boolean;
   onClose: () => void;
   patients: Patient[];
+  hideMedicalRecords?: boolean;
 }
 
 export const PrintableReport: React.FC<PrintableReportProps> = ({
   isOpen,
   onClose,
   patients,
+  hideMedicalRecords = true,
 }) => {
   if (!isOpen) return null;
 
@@ -23,7 +25,6 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
   const sesi2 = todayPatients.filter((p) => p.sessionName === 'Sesi 2');
   const sesi3 = todayPatients.filter((p) => p.sessionName === 'Sesi 3');
   const selesai = todayPatients.filter((p) => p.status === 'Selesai');
-  const menunggu = todayPatients.filter((p) => p.status === 'Menunggu');
 
   return (
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -36,7 +37,9 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
               Laporan Rekapitulasi Antrean Pasien
             </h3>
             <p className="text-xs text-slate-500">
-              Pratinjau sebelum dicetak untuk arsip klinik harian
+              {hideMedicalRecords
+                ? 'Mode Admin: Diagnosis & resep dirahasiakan (khusus Dokter & Pasien)'
+                : 'Mode Dokter: Menampilkan catatan pemeriksaan per poli'}
             </p>
           </div>
           <div className="flex gap-2">
@@ -117,9 +120,11 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
                   <th className="py-2 px-3">Antrean</th>
                   <th className="py-2 px-3">Nama Pasien</th>
                   <th className="py-2 px-3">Sesi / Jam</th>
-                  <th className="py-2 px-3">Layanan</th>
+                  <th className="py-2 px-3">Poli & Layanan</th>
                   <th className="py-2 px-3">Keluhan</th>
-                  <th className="py-2 px-3">Diagnosis & Tindakan</th>
+                  <th className="py-2 px-3">
+                    {hideMedicalRecords ? 'Rekam Medis' : 'Diagnosis & Tindakan'}
+                  </th>
                   <th className="py-2 px-3">Status</th>
                 </tr>
               </thead>
@@ -138,17 +143,35 @@ export const PrintableReport: React.FC<PrintableReportProps> = ({
                       {p.sessionName}
                       <span className="block text-[10px] text-slate-500">{p.timeSlot} WIB</span>
                     </td>
-                    <td className="py-2 px-3">{p.service}</td>
+                    <td className="py-2 px-3">
+                      <span className="font-semibold block">{p.service}</span>
+                      <span className="text-[10px] text-slate-500">
+                        {p.examinedPoly || p.assignedRoom || 'Poli Umum'}
+                      </span>
+                    </td>
                     <td className="py-2 px-3 text-slate-600 max-w-[150px] truncate">
                       {p.complaint}
                     </td>
                     <td className="py-2 px-3 text-slate-700 max-w-[180px]">
-                      {p.diagnosis ? (
+                      {hideMedicalRecords ? (
+                        p.diagnosis || p.prescription ? (
+                          <span className="text-[10px] font-semibold text-slate-500 italic">
+                            Tercatat (Rahasia Dokter & Pasien)
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">-</span>
+                        )
+                      ) : p.diagnosis ? (
                         <>
                           <strong>{p.diagnosis}</strong>
                           {p.prescription && (
                             <span className="block text-[10px] text-slate-500 truncate">
                               Rx: {p.prescription}
+                            </span>
+                          )}
+                          {(p.examinedByDoctor || p.doctorName) && (
+                            <span className="block text-[10px] text-teal-700 font-semibold">
+                              Dokter: {p.examinedByDoctor || p.doctorName}
                             </span>
                           )}
                         </>

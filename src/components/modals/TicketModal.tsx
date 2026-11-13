@@ -10,16 +10,20 @@ import {
   HeartPulse,
   MessageSquare,
   Building2,
+  Lock,
+  Stethoscope,
+  Pill,
+  RotateCcw,
 } from 'lucide-react';
 import { Patient } from '../../types';
 import { formatDateIndo, calculateAge, generateWhatsAppLink } from '../../utils/helpers';
-import { RotateCcw } from 'lucide-react';
 
 interface TicketModalProps {
   patient: Patient | null;
   isOpen: boolean;
   onClose: () => void;
   onRecheckWithCode?: (code: string) => void;
+  canViewMedicalRecord?: boolean;
 }
 
 export const TicketModal: React.FC<TicketModalProps> = ({
@@ -27,6 +31,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   isOpen,
   onClose,
   onRecheckWithCode,
+  canViewMedicalRecord = false,
 }) => {
   if (!isOpen || !patient) return null;
 
@@ -150,6 +155,105 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Confidential Medical Result (Patient & Doctor ONLY when Selesai) */}
+          {patient.status === 'Selesai' &&
+            (patient.diagnosis ||
+              patient.prescription ||
+              patient.vitalSigns?.bp ||
+              patient.vitalSigns?.temp ||
+              patient.vitalSigns?.pulse ||
+              patient.vitalSigns?.weight) && (
+              canViewMedicalRecord ? (
+                <div className="p-4 rounded-2xl bg-emerald-50/80 border-2 border-emerald-200 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between gap-2 border-b border-emerald-200/80 pb-2">
+                    <span className="font-black text-emerald-950 flex items-center gap-1.5">
+                      <HeartPulse className="w-4 h-4 text-emerald-600" />
+                      <span>Hasil Rekam Medis (Rahasia)</span>
+                    </span>
+                    <span className="text-[10px] font-bold bg-white text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Pasien & Dokter</span>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-1 text-[11px] text-emerald-950">
+                    <p>
+                      <strong className="text-emerald-800">Poli Pemeriksaan:</strong>{' '}
+                      {patient.examinedPoly || patient.assignedRoom || 'Ruang Periksa 1 (Poli Umum)'}
+                    </p>
+                    <p className="flex items-center gap-1">
+                      <Stethoscope className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span>
+                        <strong className="text-emerald-800">Dokter Pemeriksa:</strong>{' '}
+                        {patient.examinedByDoctor || patient.doctorName || 'Dokter Klinik H.APUD'}
+                      </span>
+                    </p>
+                  </div>
+
+                  {patient.vitalSigns &&
+                    (patient.vitalSigns.bp ||
+                      patient.vitalSigns.temp ||
+                      patient.vitalSigns.pulse ||
+                      patient.vitalSigns.weight) && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-white/80 p-2 rounded-xl border border-emerald-100 text-[10px]">
+                        {patient.vitalSigns.bp && (
+                          <div>
+                            <span className="text-slate-400 block">Tensi</span>
+                            <strong className="text-slate-800">{patient.vitalSigns.bp}</strong>
+                          </div>
+                        )}
+                        {patient.vitalSigns.temp && (
+                          <div>
+                            <span className="text-slate-400 block">Suhu</span>
+                            <strong className="text-slate-800">{patient.vitalSigns.temp}</strong>
+                          </div>
+                        )}
+                        {patient.vitalSigns.pulse && (
+                          <div>
+                            <span className="text-slate-400 block">Nadi</span>
+                            <strong className="text-slate-800">{patient.vitalSigns.pulse}</strong>
+                          </div>
+                        )}
+                        {patient.vitalSigns.weight && (
+                          <div>
+                            <span className="text-slate-400 block">BB</span>
+                            <strong className="text-slate-800">{patient.vitalSigns.weight}</strong>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {patient.diagnosis && (
+                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200/70">
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase block">
+                        Diagnosis Dokter
+                      </span>
+                      <p className="font-extrabold text-slate-900 mt-0.5">{patient.diagnosis}</p>
+                    </div>
+                  )}
+
+                  {patient.prescription && (
+                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200/70">
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1">
+                        <Pill className="w-3 h-3" />
+                        <span>Resep Obat & Tindakan</span>
+                      </span>
+                      <p className="text-slate-800 whitespace-pre-line mt-0.5 font-medium">
+                        {patient.prescription}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>
+                    <strong>Hasil Rekam Medis Tersimpan:</strong> Bersifat rahasia dan hanya dapat dibuka oleh Dokter pemeriksa atau Pasien yang bersangkutan.
+                  </span>
+                </div>
+              )
+            )}
 
           {/* Barcode Mock Visual */}
           <div className="text-center space-y-1">

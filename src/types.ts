@@ -16,7 +16,17 @@ export interface VitalSigns {
   pulse?: string; // Denyut nadi (bpm)
 }
 
-export type StaffRole = 'admin' | 'petugas';
+export type StaffRole = 'admin' | 'dokter';
+
+export interface DoctorAccount {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  specialty: string;
+  assignedPolies: string[];
+  updatedAt?: string;
+}
 
 export interface Doctor {
   id: string;
@@ -56,6 +66,9 @@ export interface Patient {
   status: PatientStatus;
   assignedRoom?: string; // Ruang periksa yang dituju
   doctorName?: string; // Dokter/tenaga medis yang memeriksa
+  examinedByDoctor?: string; // Nama dokter yang menyelesaikan rekam medis
+  examinedPoly?: string; // Poli / ruang periksa saat pasien diperiksa
+  examinedAt?: string; // Waktu pemeriksaan selesai dicatat
   vitalSigns?: VitalSigns;
   diagnosis?: string;
   prescription?: string;

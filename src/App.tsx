@@ -10,6 +10,8 @@ import {
   AdminCredentials,
   PatientAccount,
   ExaminationRoom,
+  StaffRole,
+  DoctorAccount,
 } from './types';
 import {
   INITIAL_PATIENTS,
@@ -18,6 +20,7 @@ import {
   DEFAULT_ADMIN_CREDENTIALS,
   INITIAL_PATIENT_ACCOUNTS,
   DEFAULT_CLINIC_ROOMS,
+  DEFAULT_DOCTOR_ACCOUNTS,
   getDefaultRoomForPatient,
 } from './data/constants';
 import { computeAutoClinicStatus } from './utils/schedule';
@@ -34,6 +37,7 @@ import { WalkInModal } from './components/modals/WalkInModal';
 import { CheckTicketModal } from './components/modals/CheckTicketModal';
 import { ClinicStatusModal } from './components/modals/ClinicStatusModal';
 import { ChangeAdminPasswordModal } from './components/modals/ChangeAdminPasswordModal';
+import { ChangeDoctorPasswordModal } from './components/modals/ChangeDoctorPasswordModal';
 import { AdminForgotPasswordModal } from './components/modals/AdminForgotPasswordModal';
 import { ChangePatientPasswordModal } from './components/modals/ChangePatientPasswordModal';
 import { PrintableReport } from './components/PrintableReport';
@@ -51,11 +55,16 @@ import {
   syncAdminCredentialsToFirestore,
   subscribePatientAccounts,
   syncPatientAccountsToFirestore,
+  subscribeDoctorAccounts,
+  syncDoctorAccountsToFirestore,
 } from './services/firebase';
 
 const STORAGE_KEY = 'klinikX_patients_v4';
 const CLINIC_STATUS_KEY = 'klinikX_status_v2';
 const ADMIN_AUTH_KEY = 'klinikX_admin_auth_v2';
+const STAFF_ROLE_KEY = 'klinikX_staff_role_v1';
+const LOGGED_DOCTOR_KEY = 'klinikX_logged_doctor_v1';
+const DOCTOR_ACCOUNTS_KEY = 'klinikX_doctor_accounts_v1';
 const ADMIN_CREDS_KEY = 'klinikX_admin_creds_v2';
 const PATIENT_USER_KEY = 'klinikX_patient_user_v2';
 const PATIENT_ACCOUNTS_KEY = 'klinikX_patient_accounts_v2';
@@ -101,9 +110,34 @@ export default function App() {
     return INITIAL_PATIENTS;
   });
 
-  // Admin login status
+  // Admin / Doctor login status & role
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+  });
+
+  const [staffRole, setStaffRole] = useState<StaffRole>(() => {
+    try {
+      return localStorage.getItem(STAFF_ROLE_KEY) === 'dokter' ? 'dokter' : 'admin';
+    } catch {
+      return 'admin';
+    }
+  });
+
+  const [loggedInDoctor, setLoggedInDoctor] = useState<DoctorAccount | null>(() => {
+    try {
+      const stored = localStorage.getItem(LOGGED_DOCTOR_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  });
+
+  // Synchronized Doctor Accounts
+  const [doctorAccounts, setDoctorAccounts] = useState<DoctorAccount[]>(() => {
+    try {
+      const stored = localStorage.getItem(DOCTOR_ACCOUNTS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return DEFAULT_DOCTOR_ACCOUNTS;
   });
 
   // Synchronized Admin Credentials
@@ -206,6 +240,7 @@ export default function App() {
   const [isClinicStatusModalOpen, setIsClinicStatusModalOpen] = useState(false);
   const [openStatusModalAfterAuth, setOpenStatusModalAfterAuth] = useState(false);
   const [isChangeAdminPasswordOpen, setIsChangeAdminPasswordOpen] = useState(false);
+  const [isChangeDoctorPasswordOpen, setIsChangeDoctorPasswordOpen] = useState(false);
   const [isAdminForgotPasswordOpen, setIsAdminForgotPasswordOpen] = useState(false);
   const [isChangePatientPasswordOpen, setIsChangePatientPasswordOpen] = useState(false);
 
@@ -266,6 +301,12 @@ export default function App() {
       } else if (e.key === PATIENT_USER_KEY) {
         try {
           setPatientUser(e.newValue ? JSON.parse(e.newValue) : null);
+        } catch (err) {
+          console.error(err);
+        }
+      } else if (e.key === DOCTOR_ACCOUNTS_KEY && e.newValue) {
+        try {
+          setDoctorAccounts(JSON.parse(e.newValue));
         } catch (err) {
           console.error(err);
         }
@@ -366,12 +407,27 @@ export default function App() {
       }
     );
 
+    // Listen to doctor accounts
+    const unsubDoctors = subscribeDoctorAccounts(
+      (remoteDoctors: DoctorAccount[]) => {
+        if (remoteDoctors && remoteDoctors.length > 0) {
+          setDoctorAccounts(remoteDoctors);
+        } else {
+          syncDoctorAccountsToFirestore(DEFAULT_DOCTOR_ACCOUNTS).catch(() => {});
+        }
+      },
+      (err: unknown) => {
+        console.warn('Real-time doctor accounts fallback:', err);
+      }
+    );
+
     return () => {
       unsubPatients();
       unsubRooms();
       unsubStatus();
       unsubCreds();
       unsubAccounts();
+      unsubDoctors();
     };
   }, []);
 
@@ -456,6 +512,38 @@ export default function App() {
       console.error('Failed to sync admin credentials to Cloud Firestore:', err);
     });
     showToast('Sandi Admin Diperbarui', 'Kata sandi admin baru berhasil disimpan dan tersinkron ke Cloud.', 'success');
+  };
+
+  // Update Doctor Password (Sandi Baru Dokter)
+  const handleUpdateDoctorPassword = (doctorId: string, newPassword: string) => {
+    setDoctorAccounts((prev) => {
+      const updated = prev.map((doc) => {
+        if (doc.id === doctorId) {
+          return { ...doc, password: newPassword, updatedAt: new Date().toISOString() };
+        }
+        return doc;
+      });
+      try {
+        localStorage.setItem(DOCTOR_ACCOUNTS_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      syncDoctorAccountsToFirestore(updated).catch((err) => {
+        console.error('Failed to sync doctor accounts to Cloud Firestore:', err);
+      });
+      return updated;
+    });
+    setLoggedInDoctor((prev) => {
+      if (prev && prev.id === doctorId) {
+        const nextDoc = { ...prev, password: newPassword, updatedAt: new Date().toISOString() };
+        try {
+          localStorage.setItem(LOGGED_DOCTOR_KEY, JSON.stringify(nextDoc));
+        } catch {}
+        return nextDoc;
+      }
+      return prev;
+    });
+    showToast('Sandi Dokter Diperbarui', 'Kata sandi dokter baru berhasil disimpan dan tersinkron ke Cloud.', 'success');
   };
 
   // Register New Patient Account
@@ -758,21 +846,41 @@ export default function App() {
     );
   };
 
-  // Save Medical Notes
+  // Save Medical Notes (Strictly Doctor Only)
   const handleSaveMedicalNotes = (
     patientId: string,
     diagnosis: string,
     prescription: string,
-    vitalSigns?: VitalSigns
+    vitalSigns?: VitalSigns,
+    meta?: {
+      examinedPoly: string;
+      examinedByDoctor: string;
+      markCompleted: boolean;
+    }
   ) => {
+    const doctorNameRecorded =
+      meta?.examinedByDoctor || loggedInDoctor?.name || 'Dokter Klinik H.APUD';
+    const examinedAt = new Date().toISOString();
+
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === patientId) {
-          const updated = {
+          const polyRecorded =
+            meta?.examinedPoly ||
+            p.examinedPoly ||
+            p.assignedRoom ||
+            getDefaultRoomForPatient(p.service, p.complaint);
+          const nextStatus: PatientStatus = meta?.markCompleted ? 'Selesai' : p.status;
+          const updated: Patient = {
             ...p,
+            status: nextStatus,
+            assignedRoom: polyRecorded,
+            examinedPoly: polyRecorded,
+            doctorName: doctorNameRecorded,
+            examinedByDoctor: doctorNameRecorded,
+            examinedAt,
             diagnosis,
             prescription,
-            doctorNotes: prescription ? `${diagnosis} | ${prescription}` : diagnosis,
             vitalSigns,
           };
           syncPatientToFirestore(updated).catch(() => {});
@@ -782,7 +890,11 @@ export default function App() {
       })
     );
 
-    showToast('Tersimpan', 'Catatan rekam medis & resep obat berhasil disimpan.', 'success');
+    showToast(
+      'Rekam Medis Tersimpan',
+      `Catatan medis oleh ${doctorNameRecorded} berhasil disimpan secara rahasia (hanya Dokter & Pasien).`,
+      'success'
+    );
   };
 
   // Delete Patient
@@ -807,15 +919,42 @@ export default function App() {
 
   const handleAdminLoginSuccess = () => {
     setIsAdminLoggedIn(true);
+    setStaffRole('admin');
+    setLoggedInDoctor(null);
     localStorage.setItem(ADMIN_AUTH_KEY, 'true');
-    showToast('Login Berhasil', 'Selamat datang di Panel Admin Klinik H.APUD!', 'success');
+    localStorage.setItem(STAFF_ROLE_KEY, 'admin');
+    localStorage.removeItem(LOGGED_DOCTOR_KEY);
+    showToast('Login Petugas Berhasil', 'Selamat datang di Panel Petugas Admin Klinik H.APUD!', 'success');
+  };
+
+  const handleDoctorLoginSuccess = (doctor: DoctorAccount) => {
+    setIsAdminLoggedIn(true);
+    setStaffRole('dokter');
+    setLoggedInDoctor(doctor);
+    localStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    localStorage.setItem(STAFF_ROLE_KEY, 'dokter');
+    localStorage.setItem(LOGGED_DOCTOR_KEY, JSON.stringify(doctor));
+    showToast(
+      'Login Dokter Berhasil',
+      `Selamat bertugas, ${doctor.name}! Rekam medis disesuaikan dengan poli pemeriksaan Anda.`,
+      'success'
+    );
   };
 
   const handleAdminLogout = () => {
+    const prevRole = staffRole;
     setIsAdminLoggedIn(false);
+    setStaffRole('admin');
+    setLoggedInDoctor(null);
     localStorage.removeItem(ADMIN_AUTH_KEY);
+    localStorage.removeItem(STAFF_ROLE_KEY);
+    localStorage.removeItem(LOGGED_DOCTOR_KEY);
     setActivePortal('admin');
-    showToast('Keluar', 'Anda telah keluar dari sesi Admin.', 'info');
+    showToast(
+      'Keluar',
+      prevRole === 'dokter' ? 'Anda telah keluar dari sesi Dokter.' : 'Anda telah keluar dari sesi Admin.',
+      'info'
+    );
   };
 
   const handlePatientLoginSuccess = (user: PatientUser) => {
@@ -858,12 +997,22 @@ export default function App() {
   };
 
   const handleOpenMedicalNotes = (patient: Patient) => {
+    if (!(activePortal === 'admin' && isAdminLoggedIn && staffRole === 'dokter')) {
+      showToast(
+        'Akses Ditolak (Rahasia Medis)',
+        'Hasil rekam medis & resep bersifat rahasia dan hanya dapat dibuka melalui Login Khusus Dokter.',
+        'warning'
+      );
+      return;
+    }
     setActiveNotePatient(patient);
     setIsMedicalNoteModalOpen(true);
   };
 
   const waitingCount = patients.filter((p) => p.status === 'Menunggu').length;
   const isStrictAdminSession = activePortal === 'admin' && isAdminLoggedIn;
+  const isStrictDoctorSession = isStrictAdminSession && staffRole === 'dokter' && Boolean(loggedInDoctor);
+  const canViewMedicalRecordOnTicket = activePortal === 'patient' || isStrictDoctorSession;
 
   return (
     <div className="min-h-full flex flex-col bg-slate-50 text-slate-800">
@@ -883,6 +1032,8 @@ export default function App() {
         onStatusBadgeClick={handleHeaderStatusClick}
         patientUser={patientUser}
         isAdminLoggedIn={isStrictAdminSession}
+        staffRole={isStrictAdminSession ? staffRole : null}
+        loggedInDoctor={isStrictDoctorSession ? loggedInDoctor : null}
         onLogoutAdmin={handleAdminLogout}
         onLogoutPatient={handlePatientLogout}
       />
@@ -922,14 +1073,19 @@ export default function App() {
           !isAdminLoggedIn ? (
             <AdminLoginView
               onLoginSuccess={handleAdminLoginSuccess}
+              onDoctorLoginSuccess={handleDoctorLoginSuccess}
               adminCredentials={adminCredentials}
               onUpdateAdminCredentials={handleUpdateAdminCredentials}
+              doctorAccounts={doctorAccounts}
+              onUpdateDoctorPassword={handleUpdateDoctorPassword}
             />
           ) : (
             <AdminView
               patients={patients}
               clinicStatus={clinicStatus}
               clinicRooms={clinicRooms}
+              staffRole={staffRole}
+              loggedInDoctor={loggedInDoctor}
               onSaveRooms={handleSaveRooms}
               onAssignRoom={handleAssignRoom}
               onOpenClinicStatusModal={() => setIsClinicStatusModalOpen(true)}
@@ -948,6 +1104,7 @@ export default function App() {
               onResetDemoData={handleResetDemoData}
               onLogout={handleAdminLogout}
               onOpenChangeAdminPassword={() => setIsChangeAdminPasswordOpen(true)}
+              onOpenChangeDoctorPassword={() => setIsChangeDoctorPasswordOpen(true)}
             />
           )
         )}
@@ -980,7 +1137,11 @@ export default function App() {
         onSuccess={() => {
           setIsAdminAuthOpen(false);
           setIsAdminLoggedIn(true);
+          setStaffRole('admin');
+          setLoggedInDoctor(null);
           localStorage.setItem(ADMIN_AUTH_KEY, 'true');
+          localStorage.setItem(STAFF_ROLE_KEY, 'admin');
+          localStorage.removeItem(LOGGED_DOCTOR_KEY);
           setActivePortal('admin');
           if (openStatusModalAfterAuth) {
             setIsClinicStatusModalOpen(true);
@@ -995,12 +1156,15 @@ export default function App() {
         patient={activeTicketPatient}
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
+        canViewMedicalRecord={canViewMedicalRecordOnTicket}
       />
 
       <MedicalNoteModal
         patient={activeNotePatient}
         isOpen={isMedicalNoteModalOpen}
         onClose={() => setIsMedicalNoteModalOpen(false)}
+        loggedInDoctor={loggedInDoctor}
+        clinicRooms={clinicRooms}
         onSave={handleSaveMedicalNotes}
       />
 
@@ -1026,6 +1190,7 @@ export default function App() {
         isOpen={isPrintReportOpen}
         onClose={() => setIsPrintReportOpen(false)}
         patients={patients}
+        hideMedicalRecords={!isStrictDoctorSession}
       />
 
       <ClinicStatusModal
@@ -1041,6 +1206,15 @@ export default function App() {
         adminCredentials={adminCredentials}
         onUpdateCredentials={handleUpdateAdminCredentials}
       />
+
+      {loggedInDoctor && (
+        <ChangeDoctorPasswordModal
+          isOpen={isChangeDoctorPasswordOpen}
+          onClose={() => setIsChangeDoctorPasswordOpen(false)}
+          doctor={loggedInDoctor}
+          onUpdateDoctorPassword={handleUpdateDoctorPassword}
+        />
+      )}
 
       <AdminForgotPasswordModal
         isOpen={isAdminForgotPasswordOpen}

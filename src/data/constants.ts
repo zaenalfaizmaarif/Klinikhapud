@@ -1,4 +1,4 @@
-import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount, ExaminationRoom, Doctor } from '../types';
+import { Patient, ServiceType, SessionName, AdminCredentials, PatientAccount, ExaminationRoom, Doctor, DoctorAccount } from '../types';
 
 export const DEFAULT_CLINIC_ROOMS: ExaminationRoom[] = [
   {
@@ -157,6 +157,49 @@ export const DEFAULT_ADMIN_CREDENTIALS: AdminCredentials = {
   updatedAt: new Date().toISOString(),
 };
 
+export const DEFAULT_DOCTOR_ACCOUNTS: DoctorAccount[] = [
+  {
+    id: 'doc-acc-1',
+    name: 'dr. H. Apud S.',
+    username: 'dr.apud',
+    password: 'dokter123',
+    specialty: 'Dokter Umum, Bedah Luka & Khitan Modern',
+    assignedPolies: [
+      'Ruang Periksa 1 (Poli Umum)',
+      'Ruang Tindakan Bedah & Luka',
+      'Ruang Khitan / Sunat Modern',
+    ],
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'doc-acc-2',
+    name: 'Bidan Hj. Dewi R., S.Tr.Keb',
+    username: 'bidan.dewi',
+    password: 'dokter123',
+    specialty: 'Kebidanan, Poli KIA, Ibu & Anak',
+    assignedPolies: ['Ruang Periksa 2 (Poli KIA / Ibu & Anak)'],
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'doc-acc-3',
+    name: 'Analis Medis Klinik',
+    username: 'analis.lab',
+    password: 'dokter123',
+    specialty: 'Laboratorium & Cek Darah',
+    assignedPolies: ['Ruang Laboratorium & Cek Darah'],
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'doc-acc-4',
+    name: 'Tim Perawat Home Care',
+    username: 'tim.homecare',
+    password: 'dokter123',
+    specialty: 'Perawat Pelayanan Kunjungan Rumah',
+    assignedPolies: ['Kunjungan Luar (Home Care)'],
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 export const INITIAL_PATIENT_ACCOUNTS: PatientAccount[] = [
   {
     id: 'acc-1',
@@ -293,6 +336,9 @@ export const INITIAL_PATIENTS: Patient[] = [
     status: 'Selesai',
     assignedRoom: 'Ruang Periksa 1 (Poli Umum)',
     doctorName: 'dr. H. Apud S.',
+    examinedByDoctor: 'dr. H. Apud S.',
+    examinedPoly: 'Ruang Periksa 1 (Poli Umum)',
+    examinedAt: new Date(Date.now() - 2.5 * 3600000).toISOString(),
     vitalSigns: { bp: '115/75', temp: '37.8', pulse: '82', weight: '58' },
     diagnosis: 'Febris Akut / Suspek Infeksi Saluran Napas Atas',
     prescription: 'Paracetamol 500mg 3x1 tablet, Vitamin C 500mg 1x1 tablet, Amoxicillin 500mg 3x1 (dihabiskan).',

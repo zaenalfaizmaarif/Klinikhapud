@@ -10,7 +10,7 @@ import {
   Ticket,
   Cloud,
 } from 'lucide-react';
-import { PortalType, PatientTab, ClinicStatus, PatientUser } from '../types';
+import { PortalType, PatientTab, ClinicStatus, PatientUser, StaffRole, DoctorAccount } from '../types';
 import { getWIBTime } from '../utils/schedule';
 
 interface HeaderProps {
@@ -25,6 +25,8 @@ interface HeaderProps {
   onStatusBadgeClick: () => void;
   patientUser?: PatientUser | null;
   isAdminLoggedIn: boolean;
+  staffRole?: StaffRole | null;
+  loggedInDoctor?: DoctorAccount | null;
   onLogoutAdmin: () => void;
   onLogoutPatient: () => void;
 }
@@ -41,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
   onStatusBadgeClick,
   patientUser,
   isAdminLoggedIn,
+  staffRole,
+  loggedInDoctor,
   onLogoutAdmin,
   onLogoutPatient,
 }) => {
@@ -85,8 +89,14 @@ export const Header: React.FC<HeaderProps> = ({
                   KLINIK H.APUD
                 </span>
                 {activePortal === 'admin' ? (
-                  <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                    Panel Admin & Petugas
+                  <span className={`hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    staffRole === 'dokter' && loggedInDoctor
+                      ? 'bg-teal-50 text-teal-800 border-teal-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    {staffRole === 'dokter' && loggedInDoctor
+                      ? `Panel Dokter • ${loggedInDoctor.name}`
+                      : 'Panel Admin & Petugas'}
                   </span>
                 ) : (
                   <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
@@ -96,7 +106,9 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <p className="text-[11px] text-slate-500 font-medium hidden xs:block">
                 {activePortal === 'admin'
-                  ? 'Akses Khusus Petugas Medis & Dokter'
+                  ? staffRole === 'dokter' && loggedInDoctor
+                    ? `👨‍⚕️ ${loggedInDoctor.name} • Rekam Medis & Resep Rahasia`
+                    : 'Akses Khusus Petugas Pendaftaran & Dokter'
                   : 'Sistem Pendaftaran Online & Antrean Sesi'}
               </p>
             </div>
@@ -211,15 +223,15 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            {/* Admin Logout Button (Only when logged in on Admin link) */}
+            {/* Admin / Doctor Logout Button (Only when logged in on Admin link) */}
             {activePortal === 'admin' && isAdminLoggedIn && (
               <button
                 onClick={onLogoutAdmin}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-rose-900 text-white font-semibold text-xs sm:text-sm transition shadow-xs cursor-pointer"
-                title="Keluar dari Admin"
+                title="Keluar dari Sesi"
               >
                 <LogOut className="w-4 h-4 text-rose-400" />
-                <span>Keluar Admin</span>
+                <span>{staffRole === 'dokter' ? 'Keluar Dokter' : 'Keluar Admin'}</span>
               </button>
             )}
           </div>

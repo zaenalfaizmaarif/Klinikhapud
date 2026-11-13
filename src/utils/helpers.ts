@@ -153,7 +153,7 @@ export function generateWhatsAppLink(patient: Patient): string {
   return `https://wa.me/${waTarget}?text=${encodeURIComponent(text)}`;
 }
 
-export function exportToCSV(patients: Patient[]) {
+export function exportToCSV(patients: Patient[], includeMedicalRecords = false) {
   const headers = [
     'No. Antrean',
     'Nama Pasien',
@@ -167,30 +167,42 @@ export function exportToCSV(patients: Patient[]) {
     'Sesi',
     'Jam Slot',
     'Layanan',
+    'Poli / Ruang Periksa',
+    'Dokter Pemeriksa',
     'Keluhan',
     'Status Antrean',
-    'Diagnosis',
-    'Resep Obat',
+    ...(includeMedicalRecords ? ['Diagnosis', 'Resep Obat'] : ['Status Rekam Medis']),
   ];
 
-  const rows = patients.map((p) => [
-    `"${p.code}"`,
-    `"${p.name.replace(/"/g, '""')}"`,
-    `"${p.patientType}"`,
-    `"${p.noRM || '-'}"`,
-    `"${p.gender}"`,
-    `"${p.dob}"`,
-    `"${p.phone}"`,
-    `"${p.address.replace(/"/g, '""')}"`,
-    `"${p.visitDate}"`,
-    `"${p.sessionName}"`,
-    `"${p.timeSlot}"`,
-    `"${p.service}"`,
-    `"${p.complaint.replace(/"/g, '""')}"`,
-    `"${p.status}"`,
-    `"${(p.diagnosis || '').replace(/"/g, '""')}"`,
-    `"${(p.prescription || '').replace(/"/g, '""')}"`,
-  ]);
+  const rows = patients.map((p) => {
+    const poly = (p.examinedPoly || p.assignedRoom || '-').replace(/"/g, '""');
+    const docName = (p.examinedByDoctor || p.doctorName || '-').replace(/"/g, '""');
+    const hasRecord = Boolean(p.diagnosis || p.prescription);
+    return [
+      `"${p.code}"`,
+      `"${p.name.replace(/"/g, '""')}"`,
+      `"${p.patientType}"`,
+      `"${p.noRM || '-'}"`,
+      `"${p.gender}"`,
+      `"${p.dob}"`,
+      `"${p.phone}"`,
+      `"${p.address.replace(/"/g, '""')}"`,
+      `"${p.visitDate}"`,
+      `"${p.sessionName}"`,
+      `"${p.timeSlot}"`,
+      `"${p.service}"`,
+      `"${poly}"`,
+      `"${docName}"`,
+      `"${p.complaint.replace(/"/g, '""')}"`,
+      `"${p.status}"`,
+      ...(includeMedicalRecords
+        ? [
+            `"${(p.diagnosis || '').replace(/"/g, '""')}"`,
+            `"${(p.prescription || '').replace(/"/g, '""')}"`,
+          ]
+        : [`"${hasRecord ? 'Tercatat (Rahasia Dokter & Pasien)' : '-'}"`]),
+    ];
+  });
 
   const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
   const encodedUri = encodeURI(csvContent);
